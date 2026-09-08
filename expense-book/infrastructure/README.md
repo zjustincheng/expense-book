@@ -14,4 +14,8 @@ Also set backend `COGNITO_DOMAIN` to the same HTTPS Cognito domain and `APP_URL`
 
 Invitation email delivery is optional. Without `INVITATION_FROM_EMAIL`, admins can copy and share links. To enable Amazon SES, provision and verify a sender identity, set backend `AWS_REGION` and `INVITATION_FROM_EMAIL`, and give the backend runtime role `ses:SendEmail` scoped to that sender identity. SES identity/DNS records and IAM grants are not included in the current Terraform foundation. Check the account's SES sending restrictions before live use. No live messages have been sent or delivery tested here.
 
+The Terraform IAM layer now creates separate ECS execution and backend runtime roles. The runtime role can read the application secret and access only `groups/*` objects in the private attachment bucket. Attach these roles to task definitions in the environment layer; do not reuse the RDS master credentials or execution role as the application role.
+
+Run `terraform fmt` and `terraform validate` from a machine with a compatible AWS provider binary before planning. The checked-in environment layer has not been applied to an AWS account.
+
 Delivery failures leave a usable invitation link and support explicit resend. A process interruption after claiming an email can leave its status as `sending`; admins can share the existing link or revoke it and create another invitation. This implementation does not provide a durable email queue or guaranteed delivery.
