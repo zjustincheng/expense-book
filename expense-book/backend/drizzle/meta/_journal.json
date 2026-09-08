@@ -71,6 +71,13 @@
       "when": 1788906326861,
       "tag": "0009_superb_logan",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788908351831,
+      "tag": "0010_complete_tyrannus",
+      "breakpoints": true
     }
   ]
 }
