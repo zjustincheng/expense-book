@@ -4,7 +4,7 @@ A shared-money application built with Next.js, React, TypeScript, Tailwind, shad
 
 ## Current milestone
 
-The first working slice supports creating groups at zero, recording income/expenses, direct obligations, transfers, settlements, and non-cash corrections; previewing balance changes; explaining member balances; suggesting settlements; reversing entries; and exporting member balances. The website currently offers equal splits and one cash participant; the API also supports exact amounts, weights, percentages, and multiple cash participants.
+The first working slice supports creating groups at zero, recording income/expenses, direct obligations, transfers, settlements, and non-cash corrections; previewing balance changes; explaining member balances; suggesting settlements; reversing entries; and exporting member balances. The backend lifecycle service also supports drafts, linked partial refunds, atomic corrections, exact preview tokens, and stale-preview protection. The website currently offers equal splits and one cash participant; the API also supports exact amounts, weights, percentages, and multiple cash participants.
 
 Cognito authorization-code sign-in with PKCE and access-token verification is implemented but has not been tested against a live AWS user pool. The historical files remain examples only and are not imported.
 

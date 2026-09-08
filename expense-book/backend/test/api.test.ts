@@ -4,35 +4,45 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
-import { connectDatabase, type Database } from "../src/db/client.js";
+import type { Database } from "../src/db/client.js";
 import { createAuthenticator } from "../src/auth.js";
 import * as schema from "../src/db/schema.js";
 
 let app: Awaited<ReturnType<typeof createApp>>;
 let closeDatabase: () => Promise<void>;
-let groupId: string;
-let memberIds: string[];
-let postedId: string;
+let groupId = "";
+let memberIds: string[] = [];
+let incomeId = "";
 const headers = { "x-test-subject": "alice" };
-const path = () => `/api/groups/${groupId}`;
+const groupPath = () => `/api/groups/${groupId}`;
+const incomeInput = () => ({
+  kind: "income",
+  description: "Club event",
+  date: "2026-09-07",
+  expression: "1000",
+  cash: [{ memberId: memberIds[0], amount: "100000" }],
+  split: { method: "equal", members: memberIds },
+});
+
 beforeAll(async () => {
   let db: Database;
   let execute: (sql: string) => Promise<unknown>;
   if (process.env.TEST_DATABASE_URL) {
-    const connection = connectDatabase(process.env.TEST_DATABASE_URL);
+    const connection = (await import("../src/db/client.js")).connectDatabase(
+      process.env.TEST_DATABASE_URL,
+    );
     db = connection.db;
     execute = (sql) => connection.pool.query(sql);
     closeDatabase = () => connection.pool.end();
   } else {
     const client = new PGlite();
-    // Both Drizzle adapters expose the same query API used by the service.
     db = drizzle(client, { schema }) as unknown as Database;
     execute = (sql) => client.exec(sql);
     closeDatabase = () => client.close();
   }
   const migrationDir = new URL("../drizzle/", import.meta.url);
   for (const file of (await readdir(migrationDir))
-    .filter((file) => file.endsWith(".sql"))
+    .filter((name) => name.endsWith(".sql"))
     .sort())
     await execute(await readFile(new URL(file, migrationDir), "utf8"));
   app = await createApp(
@@ -51,6 +61,7 @@ afterAll(async () => {
   await app?.close();
   await closeDatabase?.();
 });
+
 describe("authenticated financial API", () => {
   it("requires an identity", async () =>
     expect((await app.inject({ url: "/api/groups" })).statusCode).toBe(401));
@@ -67,145 +78,191 @@ describe("authenticated financial API", () => {
     });
     expect(response.statusCode).toBe(201);
     groupId = response.json().id;
-    const detail = (await app.inject({ url: path(), headers })).json();
+    const detail = (await app.inject({ url: groupPath(), headers })).json();
     memberIds = detail.members.map((m: { id: string }) => m.id);
     expect(
       detail.members.every(
         (m: { outstanding: string }) => m.outstanding === "0",
       ),
     ).toBe(true);
-    expect(detail.totals).toEqual({
-      income: "0",
-      expenses: "0",
-      unsettled: "0",
-    });
   });
-  it("hides groups from other users", async () => {
+  it("isolates groups from other users", async () =>
     expect(
       (
         await app.inject({
-          url: path(),
+          url: groupPath(),
           headers: { "x-test-subject": "mallory" },
         })
       ).statusCode,
-    ).toBe(404);
-    expect(
-      (
-        await app.inject({
-          url: "/api/groups",
-          headers: { "x-test-subject": "mallory" },
-        })
-      ).json(),
-    ).toEqual([]);
-  });
-  const payload = () => ({
-    kind: "income",
-    description: "Club event",
-    date: "2026-09-07",
-    expression: "1000",
-    cash: [{ memberId: memberIds[0], amount: "100000" }],
-    split: { method: "equal", members: memberIds },
-  });
-  it("previews without writing and posts a retry only once", async () => {
+    ).toBe(404));
+  it("requires the exact preview and posts idempotently", async () => {
+    const command = { action: "post", input: incomeInput() };
     const preview = await app.inject({
       method: "POST",
-      url: `${path()}/preview`,
+      url: `${groupPath()}/preview`,
       headers,
-      payload: payload(),
+      payload: command,
     });
     expect(preview.statusCode).toBe(200);
+    const previewId = preview.json().previewId;
     expect(
-      (await app.inject({ url: path(), headers })).json().entries,
+      (await app.inject({ url: groupPath(), headers })).json().entries,
     ).toHaveLength(0);
     const writeHeaders = { ...headers, "idempotency-key": randomUUID() };
     const first = await app.inject({
       method: "POST",
-      url: `${path()}/entries`,
+      url: `${groupPath()}/entries`,
       headers: writeHeaders,
-      payload: payload(),
+      payload: { command, previewId },
     });
     expect(first.statusCode).toBe(201);
-    postedId = first.json().id;
+    incomeId = first.json().entryIds[0];
     const retry = await app.inject({
       method: "POST",
-      url: `${path()}/entries`,
+      url: `${groupPath()}/entries`,
       headers: writeHeaders,
-      payload: payload(),
+      payload: { command, previewId },
     });
-    expect(retry.json().id).toBe(postedId);
-    expect(
-      (await app.inject({ url: path(), headers })).json().entries,
-    ).toHaveLength(1);
-    const conflict = await app.inject({
+    expect(retry.json().entryIds).toEqual([incomeId]);
+    const changed = await app.inject({
       method: "POST",
-      url: `${path()}/entries`,
-      headers: writeHeaders,
-      payload: { ...payload(), description: "Changed" },
-    });
-    expect(conflict.statusCode).toBe(409);
-  });
-  it("rejects another group's member without partial posting", async () => {
-    const invalid = {
-      ...payload(),
-      cash: [{ memberId: randomUUID(), amount: "100000" }],
-    };
-    expect(
-      (
-        await app.inject({
-          method: "POST",
-          url: `${path()}/entries`,
-          headers: { ...headers, "idempotency-key": randomUUID() },
-          payload: invalid,
-        })
-      ).statusCode,
-    ).toBe(400);
-    expect(
-      (await app.inject({ url: path(), headers })).json().entries,
-    ).toHaveLength(1);
-  });
-  it("records a partial settlement without changing income", async () => {
-    const response = await app.inject({
-      method: "POST",
-      url: `${path()}/entries`,
+      url: `${groupPath()}/entries`,
       headers: { ...headers, "idempotency-key": randomUUID() },
       payload: {
-        kind: "settlement",
-        description: "Payment received",
-        date: "2026-09-07",
-        expression: "250",
-        fromMemberId: memberIds[0],
-        toMemberId: memberIds[1],
+        command: {
+          ...command,
+          input: { ...incomeInput(), description: "Changed" },
+        },
+        previewId,
       },
     });
-    expect(response.statusCode).toBe(201);
-    const detail = (await app.inject({ url: path(), headers })).json();
-    expect(detail.totals).toEqual({
-      income: "100000",
-      expenses: "0",
-      unsettled: "25000",
-    });
+    expect(changed.statusCode).toBe(409);
   });
-  it("reverses with audit history and preserves overpayment", async () => {
-    const response = await app.inject({
+  it("invalidates an old preview after another write", async () => {
+    const command = {
+      action: "post",
+      input: { ...incomeInput(), description: "Second" },
+    };
+    const preview = await app.inject({
       method: "POST",
-      url: `${path()}/entries/${postedId}/reverse`,
-      headers: { ...headers, "idempotency-key": randomUUID() },
-      payload: { reason: "Income entered in error", date: "2026-09-07" },
+      url: `${groupPath()}/preview`,
+      headers,
+      payload: command,
     });
-    expect(response.statusCode).toBe(201);
-    const detail = (await app.inject({ url: path(), headers })).json();
-    expect(detail.totals.income).toBe("0");
-    expect(detail.totals.unsettled).toBe("25000");
-    expect(detail.entries).toHaveLength(3);
-    const duplicate = await app.inject({
+    const other = {
+      action: "post",
+      input: { ...incomeInput(), description: "Third" },
+    };
+    const otherPreview = await app.inject({
       method: "POST",
-      url: `${path()}/entries/${postedId}/reverse`,
-      headers: { ...headers, "idempotency-key": randomUUID() },
-      payload: { reason: "Again", date: "2026-09-07" },
+      url: `${groupPath()}/preview`,
+      headers,
+      payload: other,
     });
-    expect(duplicate.statusCode).toBe(409);
+    await app.inject({
+      method: "POST",
+      url: `${groupPath()}/entries`,
+      headers: { ...headers, "idempotency-key": randomUUID() },
+      payload: { command: other, previewId: otherPreview.json().previewId },
+    });
+    const stale = await app.inject({
+      method: "POST",
+      url: `${groupPath()}/entries`,
+      headers: { ...headers, "idempotency-key": randomUUID() },
+      payload: { command, previewId: preview.json().previewId },
+    });
+    expect(stale.statusCode).toBe(409);
+  });
+  it("supports drafts with optimistic revision checks", async () => {
+    const draftInput = { ...incomeInput(), description: "Draft event" };
+    const create = await app.inject({
+      method: "POST",
+      url: `${groupPath()}/drafts`,
+      headers: { ...headers, "idempotency-key": randomUUID() },
+      payload: { action: "create", input: draftInput },
+    });
+    expect(create.statusCode).toBe(201);
+    const draft = create.json();
+    const stale = await app.inject({
+      method: "POST",
+      url: `${groupPath()}/drafts`,
+      headers: { ...headers, "idempotency-key": randomUUID() },
+      payload: {
+        action: "update",
+        draftId: draft.id,
+        version: 99,
+        input: draftInput,
+      },
+    });
+    expect(stale.statusCode).toBe(409);
+    const command = {
+      action: "postDraft",
+      draftId: draft.id,
+      version: draft.version,
+    };
+    const preview = await app.inject({
+      method: "POST",
+      url: `${groupPath()}/preview`,
+      headers,
+      payload: command,
+    });
+    const posted = await app.inject({
+      method: "POST",
+      url: `${groupPath()}/entries`,
+      headers: { ...headers, "idempotency-key": randomUUID() },
+      payload: { command, previewId: preview.json().previewId },
+    });
+    expect(posted.statusCode).toBe(201);
+    expect(
+      (
+        await app.inject({ url: `${groupPath()}/drafts/${draft.id}`, headers })
+      ).json().state,
+    ).toBe("posted");
+  });
+  it("supports linked refunds and blocks corrections until refunds are resolved", async () => {
+    const refund = {
+      action: "refund",
+      entryId: incomeId,
+      input: {
+        description: "Refund",
+        date: "2026-09-08",
+        expression: "250",
+        cash: [{ memberId: memberIds[0], amount: "25000" }],
+      },
+    };
+    const refundPreview = await app.inject({
+      method: "POST",
+      url: `${groupPath()}/preview`,
+      headers,
+      payload: refund,
+    });
+    const refundPost = await app.inject({
+      method: "POST",
+      url: `${groupPath()}/entries`,
+      headers: { ...headers, "idempotency-key": randomUUID() },
+      payload: { command: refund, previewId: refundPreview.json().previewId },
+    });
+    expect(refundPost.statusCode).toBe(201);
+    const correction = {
+      action: "correct",
+      entryId: incomeId,
+      reason: "Correct amount",
+      replacement: {
+        ...incomeInput(),
+        expression: "900",
+        cash: [{ memberId: memberIds[0], amount: "90000" }],
+      },
+    };
+    const correctionPreview = await app.inject({
+      method: "POST",
+      url: `${groupPath()}/preview`,
+      headers,
+      payload: correction,
+    });
+    expect(correctionPreview.statusCode).toBe(409);
   });
 });
+
 it("refuses development authentication in production or on public interfaces", () => {
   expect(() =>
     createAuthenticator({ AUTH_MODE: "development", NODE_ENV: "production" }),

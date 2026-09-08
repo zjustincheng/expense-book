@@ -9,6 +9,7 @@
 - Drizzle migrations with composite tenant foreign keys, append-only triggers, and deferred ledger balance checks.
 - Cognito PKCE sign-in scaffolding, HTTP-only token cookies, same-origin checks for website mutations, and API access-token verification. Production refuses the development identity.
 - Terraform foundation for RDS, private S3 attachments, Cognito, Secrets Manager, ECR, ECS cluster, and CloudWatch logs. Local PostgreSQL Compose file.
+- Financial lifecycle service with draft revisions, exact preview tokens, optimistic draft posting, linked partial refunds, and atomic reversal/replacement corrections. Preview tokens expire after ten minutes and are invalidated by any group ledger change.
 
 ## Verified at this stopping point
 
@@ -16,7 +17,7 @@
 - Browser workflow passes in installed Chrome: create group, preview/post income, inspect balance explanation, post a partial settlement, reload persisted data, and check a 390px mobile layout for overflow.
 - ESLint, strict TypeScript checks, formatting, and frontend/backend production builds pass.
 - Terraform formatting and provider-backed validation pass. No Terraform plan against an AWS account or deployment has run.
-- CI is configured to repeat checks against PostgreSQL 17 and Chromium, but remote GitHub Actions has not run because this directory is not a connected Git repository.
+- CI is configured to repeat checks against PostgreSQL 17 and Chromium. Run it on the connected GitHub repository after committing this milestone.
 - Live Cognito, AWS integrations, Docker-based local startup, and production operations have not been exercised here.
 
 ## Review findings addressed
@@ -36,7 +37,7 @@ The online npm audit reports four moderate findings in the development-only `dri
 ## Remaining product work
 
 1. Invitations, role management, adding/archiving members, and account linking. Currently a group creator has admin access; authorization recognizes editor/viewer roles, but there is no management UI yet.
-2. Draft/post lifecycle, atomic reversal/replacement corrections, linked partial/full refunds, and stale-preview detection. The current API posts directly after preview and supports standalone full reversals. Never use a manual adjustment as a substitute for the planned linked refund workflow.
+2. Finish the transaction lifecycle UI for drafts, refunds, and corrections. The backend service and schema enforce the lifecycle rules, but the website currently exposes the basic post and reverse workflow only.
 3. Projects, categories/tags, stored default split rules, more split controls, and multiple cash participants in the website. The API already calculates equal, percentage, weight, and exact splits.
 4. Date-scoped reports, complete pagination, member statements with contributing-record drill-down, and fuller exports. Current dashboard totals include all posted records, activity shows the latest 100 entries, and exports cover cumulative member balances.
 5. Attachment metadata, authorized S3 uploads/downloads, and content validation. Terraform provisions storage only; the application does not yet accept attachments.
@@ -52,4 +53,4 @@ AWS region/account, domain, existing network versus a new VPC, initial environme
 
 ## Resuming
 
-Read `WEBSITE_GUIDELINES.md`, this file, and `README.md`. Start with invitations/member management or finish the transaction lifecycle before adding more reporting UI. Preserve the existing test suite and add meaningful authorization/concurrency tests when those features change. The repository has no Git metadata yet.
+Read `WEBSITE_GUIDELINES.md`, this file, and `README.md`. Start with invitations/member management or finish the transaction lifecycle UI before adding more reporting UI. Preserve the existing test suite and add meaningful authorization/concurrency tests when those features change.

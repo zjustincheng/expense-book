@@ -5,6 +5,7 @@ import {
   date,
   foreignKey,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -14,6 +15,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type { EntryInput } from "../domain/ledger.js";
+import type { RefundInput } from "../domain/lifecycle.js";
 
 export const groups = pgTable(
   "groups",
@@ -21,6 +23,9 @@ export const groups = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     name: text().notNull(),
     currency: text().notNull(),
+    ledgerVersion: bigint({ mode: "bigint" })
+      .notNull()
+      .default(sql`0`),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -67,11 +72,16 @@ export const entries = pgTable(
     description: text().notNull(),
     date: date().notNull(),
     amount: bigint({ mode: "bigint" }).notNull(),
-    input: jsonb().$type<EntryInput | { reverses: string }>().notNull(),
+    input: jsonb()
+      .$type<EntryInput | RefundInput | { reverses: string; reason?: string }>()
+      .notNull(),
     actor: text().notNull(),
     idempotencyKey: uuid().notNull(),
     requestHash: text().notNull(),
     reverses: uuid(),
+    refundOf: uuid(),
+    corrects: uuid(),
+    correctionReason: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -82,11 +92,21 @@ export const entries = pgTable(
       columns: [t.groupId, t.reverses],
       foreignColumns: [t.groupId, t.id],
     }),
+    foreignKey({
+      columns: [t.groupId, t.refundOf],
+      foreignColumns: [t.groupId, t.id],
+    }),
+    foreignKey({
+      columns: [t.groupId, t.corrects],
+      foreignColumns: [t.groupId, t.id],
+    }),
+    unique("one_correction").on(t.corrects),
+    index("entries_refund_of").on(t.refundOf),
     index("entries_group_date").on(t.groupId, t.date),
     check("positive_amount", sql`${t.amount} > 0`),
     check(
       "entry_kind",
-      sql`${t.kind} in ('income','expense','obligation','transfer','settlement','adjustment','reversal')`,
+      sql`${t.kind} in ('income','expense','obligation','transfer','settlement','adjustment','reversal','refund')`,
     ),
   ],
 );
@@ -116,4 +136,103 @@ export const effects = pgTable(
     }),
     index("effects_group_member").on(t.groupId, t.memberId),
   ],
+);
+
+// Drafts never have journal effects. Every edit preserves an audit revision.
+export const drafts = pgTable(
+  "drafts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    input: jsonb().$type<EntryInput>().notNull(),
+    version: integer().notNull().default(1),
+    state: text().notNull().default("draft"),
+    postedEntryId: uuid(),
+    createdBy: text().notNull(),
+    updatedBy: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("draft_group_id").on(t.groupId, t.id),
+    index("drafts_group_state").on(t.groupId, t.state),
+    check("draft_state", sql`${t.state} in ('draft','posted','discarded')`),
+    check("draft_version", sql`${t.version} > 0`),
+    check(
+      "draft_posted_link",
+      sql`(${t.state} = 'posted') = (${t.postedEntryId} is not null)`,
+    ),
+    foreignKey({
+      columns: [t.groupId, t.postedEntryId],
+      foreignColumns: [entries.groupId, entries.id],
+    }),
+  ],
+);
+export const draftRevisions = pgTable(
+  "draft_revisions",
+  {
+    groupId: uuid().notNull(),
+    draftId: uuid().notNull(),
+    version: integer().notNull(),
+    input: jsonb().$type<EntryInput>().notNull(),
+    state: text().notNull(),
+    actor: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.draftId, t.version] }),
+    foreignKey({
+      columns: [t.groupId, t.draftId],
+      foreignColumns: [drafts.groupId, drafts.id],
+    }),
+  ],
+);
+export const previews = pgTable(
+  "financial_previews",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    actor: text().notNull(),
+    requestHash: text().notNull(),
+    ledgerVersion: bigint({ mode: "bigint" }).notNull(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+  },
+  (t) => [
+    index("previews_expiry").on(t.expiresAt),
+    unique("preview_group_id").on(t.groupId, t.id),
+  ],
+);
+export const financialRequests = pgTable(
+  "financial_requests",
+  {
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    key: uuid().notNull(),
+    actor: text().notNull(),
+    requestHash: text().notNull(),
+    entryIds: jsonb().$type<string[]>().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.key] })],
+);
+export const draftRequests = pgTable(
+  "draft_requests",
+  {
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    key: uuid().notNull(),
+    actor: text().notNull(),
+    requestHash: text().notNull(),
+    result: jsonb()
+      .$type<{ id: string; version: number; state: string }>()
+      .notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.key] })],
 );

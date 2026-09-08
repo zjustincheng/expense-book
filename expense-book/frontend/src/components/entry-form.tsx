@@ -32,7 +32,11 @@ export function EntryForm({
   const [preview, setPreview] = useState<Preview | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const submission = useRef<{ body: unknown; key: string } | null>(null);
+  const submission = useRef<{
+    command: unknown;
+    key: string;
+    previewId: string;
+  } | null>(null);
   const activity = kind === "income" || kind === "expense";
   const names = new Map(group.members.map((m) => [m.id, m.name]));
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -43,7 +47,10 @@ export function EntryForm({
       if (preview && submission.current) {
         await api(
           `/groups/${group.id}/entries`,
-          submission.current.body,
+          {
+            command: submission.current.command,
+            previewId: submission.current.previewId,
+          },
           submission.current.key,
         );
         await onSaved();
@@ -58,7 +65,7 @@ export function EntryForm({
         expression: amount,
         date: String(form.get("date")),
       };
-      const body = activity
+      const input = activity
         ? {
             ...common,
             cash: [
@@ -74,8 +81,14 @@ export function EntryForm({
             fromMemberId: String(form.get("from")),
             toMemberId: String(form.get("to")),
           };
-      submission.current = { body, key: crypto.randomUUID() };
-      setPreview(await api<Preview>(`/groups/${group.id}/preview`, body));
+      const command = { action: "post", input };
+      const result = await api<Preview>(`/groups/${group.id}/preview`, command);
+      submission.current = {
+        command,
+        key: crypto.randomUUID(),
+        previewId: result.previewId,
+      };
+      setPreview(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to save.");
     } finally {
