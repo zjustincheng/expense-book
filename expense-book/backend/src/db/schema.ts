@@ -71,6 +71,40 @@ export const members = pgTable(
     }),
   ],
 );
+export const projects = pgTable(
+  "projects",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    name: text().notNull(),
+    archivedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("project_group_id").on(t.groupId, t.id),
+    unique("project_group_name").on(t.groupId, t.name),
+    index("projects_group").on(t.groupId, t.archivedAt),
+  ],
+);
+export const categories = pgTable(
+  "categories",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    name: text().notNull(),
+    archivedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("category_group_id").on(t.groupId, t.id),
+    unique("category_group_name").on(t.groupId, t.name),
+    index("categories_group").on(t.groupId, t.archivedAt),
+  ],
+);
 // Append-only journal. The input snapshot preserves the split rule and expression.
 export const entries = pgTable(
   "entries",

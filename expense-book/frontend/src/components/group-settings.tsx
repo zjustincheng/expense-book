@@ -35,6 +35,10 @@ export function GroupSettings({ groupId }: { groupId: string }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [invitationLink, setInvitationLink] = useState("");
+  const [labels, setLabels] = useState<{
+    projects: { id: string; name: string; archivedAt: string | null }[];
+    categories: { id: string; name: string; archivedAt: string | null }[];
+  }>({ projects: [], categories: [] });
   const attempt = useRef<{ body: string; key: string } | null>(null);
   const load = useCallback(
     async () => setSettings(await api<Settings>(`/groups/${groupId}/settings`)),
@@ -53,6 +57,27 @@ export function GroupSettings({ groupId }: { groupId: string }) {
       active = false;
     };
   }, [groupId]);
+  useEffect(() => {
+    api<typeof labels>(`/groups/${groupId}/labels`)
+      .then(setLabels)
+      .catch(() => undefined);
+  }, [groupId]);
+  async function addLabel(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    try {
+      await api(
+        `/groups/${groupId}/labels`,
+        { kind: form.get("kind"), name: form.get("name") },
+        crypto.randomUUID(),
+      );
+      setLabels(await api<typeof labels>(`/groups/${groupId}/labels`));
+      event.currentTarget.reset();
+      setNotice("Label created.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to create label.");
+    }
+  }
   async function change(command: Command) {
     if (!settings || pending) return;
     setPending(true);
@@ -152,6 +177,48 @@ export function GroupSettings({ groupId }: { groupId: string }) {
       {!settings && !error && <p role="status">Loading group settings…</p>}
       {settings && (
         <fieldset disabled={pending} className="space-y-6">
+          <section className={panel}>
+            <h2 className="text-xl font-semibold">Projects & categories</h2>
+            <p className="my-3 text-sm text-stone-500">
+              Create reusable labels for consistent reports. Archived labels
+              remain visible on historical records.
+            </p>
+            <form
+              className="flex flex-wrap items-end gap-3"
+              onSubmit={addLabel}
+            >
+              <label className="min-w-0 flex-1">
+                Label name
+                <input
+                  name="name"
+                  required
+                  maxLength={80}
+                  placeholder="Summer trip"
+                />
+              </label>
+              <label>
+                Type
+                <select name="kind">
+                  <option value="project">Project</option>
+                  <option value="category">Category</option>
+                </select>
+              </label>
+              <Button>Create label</Button>
+            </form>
+            <div className="mt-4 flex flex-wrap gap-2 text-sm">
+              {[
+                ...labels.projects.map((label) => `Project: ${label.name}`),
+                ...labels.categories.map((label) => `Category: ${label.name}`),
+              ].map((label) => (
+                <span
+                  key={label}
+                  className="rounded-full bg-stone-100 px-3 py-1"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          </section>
           <section className={panel}>
             <h2 className="text-xl font-semibold">Members</h2>
             <p className="my-3 text-sm leading-6 text-stone-500">
