@@ -271,6 +271,9 @@ export function Dashboard({
               <Button asChild variant="outline">
                 <a href={`/groups/${group.id}/reports`}>Reports</a>
               </Button>
+              <Button asChild variant="outline">
+                <a href={`/groups/${group.id}/recurring`}>Recurring</a>
+              </Button>
               {group.role !== "viewer" && (
                 <Button onClick={() => setAdding(!adding)}>
                   <Plus size={16} />
