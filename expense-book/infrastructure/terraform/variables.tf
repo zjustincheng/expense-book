@@ -42,3 +42,15 @@ variable "application_security_group_id" {
   type        = string
   description = "Security group used by the backend ECS tasks."
 }
+variable "public_subnet_ids" {
+  type        = list(string)
+  description = "At least two public subnets for the internet-facing load balancer."
+  validation {
+    condition     = length(var.public_subnet_ids) >= 2
+    error_message = "Provide at least two public subnets."
+  }
+}
+variable "certificate_arn" {
+  type        = string
+  description = "ACM certificate ARN covering the application domain."
+}

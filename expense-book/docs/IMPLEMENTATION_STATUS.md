@@ -21,6 +21,7 @@
 - Attachment storage foundation: PostgreSQL metadata with tenant-safe entry foreign keys and AWS S3 SDK dependencies are in place; signed upload/download routes and UI are the next part of this milestone.
 - Signed S3 upload and download URL routes with MIME/size limits, tenant authorization, and five-minute URL expiry. Live AWS credentials and browser upload wiring remain deployment setup work.
 - Terraform IAM foundation for separate ECS execution and backend runtime roles, including scoped private-attachment access and runtime secret reads.
+- Terraform ECS task definitions/services now include a public-subnet HTTPS Application Load Balancer, ACM certificate input, frontend health checks, and load-balancer-to-task security-group ingress. CloudFront, Route 53, and backend service discovery remain deployment-layer work.
 
 ## Verified at this stopping point
 
@@ -53,7 +54,7 @@ The online npm audit reports four moderate findings in the development-only `dri
 3. Attachment metadata, authorized S3 uploads/downloads, and content validation. Terraform provisions storage only; the application does not yet accept attachments.
 4. Live Cognito and SES verification, refresh-token rotation, provider logout/revocation, and operational session handling. Signed JWT and mocked userInfo tests pass; these do not replace a live integration check.
 5. Extract the dashboard and route modules into smaller feature modules as features arrive; keep financial rules in the domain layer. Complete a dedicated accessibility audit and expand browser coverage to real multi-user sessions.
-6. AWS environment layer: VPC/networking, ECS tasks/services and IAM, least-privilege database role, TLS, load balancer, CloudFront, Route 53, remote Terraform state, deployment OIDC, SES sender provisioning, backup restoration, and monitoring. No apply/deployment has occurred.
+6. AWS environment layer: VPC/networking, least-privilege database role, CloudFront, Route 53, backend service discovery, remote Terraform state, deployment OIDC, SES sender provisioning, backup restoration, and monitoring. The checked-in ALB/ECS layer has not been applied.
 
 Optional opening balances and full historical import remain later scope. The old source files must not be treated as verified balances or imported automatically.
 
