@@ -38,6 +38,8 @@ const reportQuery = z.object({
     ])
     .optional(),
   memberId: z.string().uuid().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(50),
 });
 export function registerGroupRoutes(app: FastifyInstance, db: Database) {
   app.get("/groups", async (request) =>
@@ -175,7 +177,10 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
           .from(entries)
           .where(and(...conditions))
           .orderBy(desc(entries.date), desc(entries.createdAt))
-          .limit(1000);
+          .limit(query.pageSize + 1)
+          .offset((query.page - 1) * query.pageSize);
+        const hasMore = rows.length > query.pageSize;
+        rows.splice(query.pageSize);
         const totals = new Map<string, bigint>();
         for (const row of rows)
           totals.set(row.kind, (totals.get(row.kind) ?? 0n) + row.amount);
@@ -183,6 +188,9 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
           records: rows,
           totals: Object.fromEntries(totals),
           count: rows.length,
+          page: query.page,
+          pageSize: query.pageSize,
+          hasMore,
         });
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },

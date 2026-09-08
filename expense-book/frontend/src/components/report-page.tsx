@@ -7,6 +7,8 @@ type Report = {
   records: GroupDetail["entries"];
   totals: Record<string, string>;
   count: number;
+  page?: number;
+  hasMore?: boolean;
 };
 const kinds = [
   "income",
@@ -31,12 +33,15 @@ export function ReportPage({ groupId }: { groupId: string }) {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const load = useCallback(
     async (next = filters) => {
       setLoading(true);
       setError("");
       const query = new URLSearchParams(
-        Object.entries(next).filter(([, value]) => value),
+        Object.entries({ ...next, page: String(page), pageSize: "50" }).filter(
+          ([, value]) => value,
+        ),
       );
       try {
         setReport(await api<Report>(`/groups/${groupId}/reports?${query}`));
@@ -46,7 +51,7 @@ export function ReportPage({ groupId }: { groupId: string }) {
         setLoading(false);
       }
     },
-    [filters, groupId],
+    [filters, groupId, page],
   );
   useEffect(() => {
     api<GroupDetail>(`/groups/${groupId}`)
@@ -214,7 +219,7 @@ export function ReportPage({ groupId }: { groupId: string }) {
       {report && (
         <>
           <p className="text-sm text-stone-500">
-            {report.count} matching records
+            {report.count} matching records · page {report.page ?? page}
           </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {kinds
@@ -274,6 +279,22 @@ export function ReportPage({ groupId }: { groupId: string }) {
               </div>
             )}
           </section>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((value) => value - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              disabled={!report.hasMore || loading}
+              onClick={() => setPage((value) => value + 1)}
+            >
+              Next
+            </Button>
+          </div>
         </>
       )}
     </main>
