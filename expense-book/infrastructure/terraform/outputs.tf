@@ -11,3 +11,4 @@ output "cognito_domain" { value = "https://${aws_cognito_user_pool_domain.users.
 output "image_repositories" { value = { for name, repository in aws_ecr_repository.application : name => repository.repository_url } }
 output "ecs_execution_role_arn" { value = aws_iam_role.ecs_execution.arn }
 output "backend_runtime_role_arn" { value = aws_iam_role.backend_runtime.arn }
+output "application_load_balancer_dns" { value = aws_lb.application.dns_name }

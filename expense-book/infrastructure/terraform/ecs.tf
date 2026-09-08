@@ -80,6 +80,11 @@ resource "aws_ecs_service" "frontend" {
     security_groups  = [var.ecs_security_group_id]
     assign_public_ip = false
   }
+  load_balancer {
+    target_group_arn = aws_lb_target_group.frontend.arn
+    container_name   = "frontend"
+    container_port   = 3000
+  }
   deployment_circuit_breaker {
     enable   = true
     rollback = true

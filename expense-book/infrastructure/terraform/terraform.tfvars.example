@@ -4,4 +4,7 @@ name_prefix                   = "replace-with-unique-prefix"
 app_url                       = "https://example.com"
 vpc_id                        = "vpc-replace"
 private_subnet_ids            = ["subnet-replace-a", "subnet-replace-b"]
+public_subnet_ids             = ["subnet-public-a", "subnet-public-b"]
 application_security_group_id = "sg-replace"
+ecs_security_group_id         = "sg-ecs-replace"
+certificate_arn               = "arn:aws:acm:us-east-1:123456789012:certificate/replace-me"
