@@ -18,6 +18,7 @@
 - Group-managed project and category labels with PostgreSQL storage, admin creation/archival, and dropdowns in new record forms. Historical free-text labels remain readable.
 - Group default split method setting for equal, weights, percentages, or exact amounts; new forms use it while preserving per-record overrides.
 - Member statement pages with contributing-record effects and PostgreSQL-backed saved split-template records/API scaffolding.
+- Attachment storage foundation: PostgreSQL metadata with tenant-safe entry foreign keys and AWS S3 SDK dependencies are in place; signed upload/download routes and UI are the next part of this milestone.
 
 ## Verified at this stopping point
 
