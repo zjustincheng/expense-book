@@ -7,6 +7,8 @@ type Settings = {
   version: number;
   currentSubject: string;
   emailEnabled: boolean;
+  openingBalance: string;
+  openingBalanceDate: string | null;
   members: {
     id: string;
     name: string;
@@ -96,6 +98,23 @@ export function GroupSettings({ groupId }: { groupId: string }) {
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Unable to save default split rule.",
+      );
+    }
+  }
+  async function saveOpeningBalance(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    try {
+      await api(
+        `/groups/${groupId}/opening-balance`,
+        { amount: form.get("amount"), date: form.get("date") },
+        crypto.randomUUID(),
+      );
+      setNotice("Opening balance saved.");
+      await load();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to save opening balance.",
       );
     }
   }
@@ -256,6 +275,43 @@ export function GroupSettings({ groupId }: { groupId: string }) {
                 </select>
               </label>
               <Button variant="outline">Save default split</Button>
+            </form>
+          </section>
+          <section className={panel}>
+            <h2 className="text-xl font-semibold">
+              Historical opening balance
+            </h2>
+            <p className="my-3 text-sm leading-6 text-stone-500">
+              Optional starting context for this group. Enter minor units (for
+              example, 12500 = $125.00). It does not import old rows or change
+              the immutable ledger.
+            </p>
+            <form
+              className="grid gap-4 sm:grid-cols-3"
+              onSubmit={saveOpeningBalance}
+            >
+              <label>
+                Amount (minor units)
+                <input
+                  name="amount"
+                  inputMode="numeric"
+                  defaultValue={settings.openingBalance}
+                  required
+                  pattern="-?\d{1,15}"
+                />
+              </label>
+              <label>
+                As of date
+                <input
+                  name="date"
+                  type="date"
+                  defaultValue={settings.openingBalanceDate ?? ""}
+                  required
+                />
+              </label>
+              <div className="flex items-end">
+                <Button variant="outline">Save opening balance</Button>
+              </div>
             </form>
           </section>
           <section className={panel}>
