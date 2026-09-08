@@ -23,6 +23,7 @@ export const groups = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     name: text().notNull(),
     currency: text().notNull(),
+    managementVersion: integer().notNull().default(0),
     ledgerVersion: bigint({ mode: "bigint" })
       .notNull()
       .default(sql`0`),
@@ -43,6 +44,7 @@ export const access = pgTable(
       .references(() => groups.id),
     subject: text().notNull(),
     role: text().notNull(),
+    email: text(),
   },
   (t) => [
     primaryKey({ columns: [t.groupId, t.subject] }),
@@ -57,8 +59,17 @@ export const members = pgTable(
       .notNull()
       .references(() => groups.id),
     name: text().notNull(),
+    archivedAt: timestamp({ withTimezone: true }),
+    linkedSubject: text(),
   },
-  (t) => [unique("member_group_id").on(t.groupId, t.id)],
+  (t) => [
+    unique("member_group_id").on(t.groupId, t.id),
+    unique("member_linked_account").on(t.groupId, t.linkedSubject),
+    foreignKey({
+      columns: [t.groupId, t.linkedSubject],
+      foreignColumns: [access.groupId, access.subject],
+    }),
+  ],
 );
 // Append-only journal. The input snapshot preserves the split rule and expression.
 export const entries = pgTable(
@@ -233,6 +244,70 @@ export const draftRequests = pgTable(
       .$type<{ id: string; version: number; state: string }>()
       .notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.key] })],
+);
+
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: uuid().primaryKey(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    memberId: uuid().notNull(),
+    email: text().notNull(),
+    role: text().notNull(),
+    state: text().notNull().default("pending"),
+    createdBy: text().notNull(),
+    acceptedBy: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    delivery: text().notNull().default("link"),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.groupId, t.memberId],
+      foreignColumns: [members.groupId, members.id],
+    }),
+    index("invitations_group").on(t.groupId, t.createdAt),
+    check("invitation_role", sql`${t.role} in ('admin','editor','viewer')`),
+    check(
+      "invitation_state",
+      sql`${t.state} in ('pending','accepted','revoked')`,
+    ),
+    check(
+      "invitation_delivery",
+      sql`${t.delivery} in ('link','sending','sent','failed')`,
+    ),
+  ],
+);
+
+export const managementEvents = pgTable(
+  "management_events",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    actor: text().notNull(),
+    action: text().notNull(),
+    details: jsonb().$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("management_events_group").on(t.groupId, t.createdAt)],
+);
+
+export const managementRequests = pgTable(
+  "management_requests",
+  {
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    key: uuid().notNull(),
+    actor: text().notNull(),
+    requestHash: text().notNull(),
+    result: jsonb().$type<{ id?: string }>().notNull(),
   },
   (t) => [primaryKey({ columns: [t.groupId, t.key] })],
 );

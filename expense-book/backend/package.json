@@ -13,6 +13,7 @@
     "db:migrate": "tsx --env-file-if-exists=.env src/db/migrate.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.1127.0",
     "@fastify/helmet": "^13.1.1",
     "@fastify/rate-limit": "^11.2.0",
     "drizzle-orm": "^0.45.2",

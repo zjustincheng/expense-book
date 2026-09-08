@@ -15,7 +15,7 @@ async function proxy(
     );
   const { path } = await context.params;
   if (
-    path[0] !== "groups" ||
+    !["groups", "invitations", "session"].includes(path[0] ?? "") ||
     path.some((part) => !/^[a-zA-Z0-9-]+$/.test(part))
   )
     return new NextResponse(null, { status: 404 });

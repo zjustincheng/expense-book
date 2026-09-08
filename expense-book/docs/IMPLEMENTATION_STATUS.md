@@ -10,11 +10,13 @@
 - Cognito PKCE sign-in scaffolding, HTTP-only token cookies, same-origin checks for website mutations, and API access-token verification. Production refuses the development identity.
 - Terraform foundation for RDS, private S3 attachments, Cognito, Secrets Manager, ECR, ECS cluster, and CloudWatch logs. Local PostgreSQL Compose file.
 - Financial lifecycle service with draft revisions, exact preview tokens, optimistic draft posting, linked partial refunds, and atomic reversal/replacement corrections. Preview tokens expire after ten minutes and are invalidated by any group ledger change.
+- Member and access management UI/API: add, rename, archive/restore, account linking, verified-email invitations, revocation, admin/editor/viewer roles, last-admin protection, versioned writes, and immutable management history. Archived members retain balances and can participate in settlements, transfers, and corrections, but cannot receive new ordinary allocations or obligations.
+- Optional SES invitation delivery with copyable links, delivery status, and explicit retry; no live AWS sender configured.
 
 ## Verified at this stopping point
 
-- 30 domain/API tests pass using PGlite, including tenant isolation, retry-key conflicts, partial settlements, reversals, and zero-start groups.
-- Browser workflow passes in installed Chrome: create group, preview/post income, inspect balance explanation, post a partial settlement, reload persisted data, and check a 390px mobile layout for overflow.
+- 48 domain/API/authentication tests pass using PGlite, including tenant isolation, retry-key conflicts, partial settlements, reversals, zero-start groups, invitation email matching, expiry/revocation, permission enforcement, archival, concurrent admin changes, and signed JWT verification.
+- Browser workflow passes in installed Chrome: create group, preview/post income, inspect balance explanation, post a partial settlement, reload persisted data, check the 390px dashboard for overflow, then add/rename/archive/restore a member and accept an invitation at that mobile size.
 - ESLint, strict TypeScript checks, formatting, and frontend/backend production builds pass.
 - Terraform formatting and provider-backed validation pass. No Terraform plan against an AWS account or deployment has run.
 - CI is configured to repeat checks against PostgreSQL 17 and Chromium. Run it on the connected GitHub repository after committing this milestone.
@@ -36,14 +38,13 @@ The online npm audit reports four moderate findings in the development-only `dri
 
 ## Remaining product work
 
-1. Invitations, role management, adding/archiving members, and account linking. Currently a group creator has admin access; authorization recognizes editor/viewer roles, but there is no management UI yet.
-2. Finish the transaction lifecycle UI for drafts, refunds, and corrections. The backend service and schema enforce the lifecycle rules, but the website currently exposes the basic post and reverse workflow only.
-3. Projects, categories/tags, stored default split rules, more split controls, and multiple cash participants in the website. The API already calculates equal, percentage, weight, and exact splits.
-4. Date-scoped reports, complete pagination, member statements with contributing-record drill-down, and fuller exports. Current dashboard totals include all posted records, activity shows the latest 100 entries, and exports cover cumulative member balances.
-5. Attachment metadata, authorized S3 uploads/downloads, and content validation. Terraform provisions storage only; the application does not yet accept attachments.
-6. Live Cognito verification, refresh-token rotation, provider logout/revocation, authentication tests with signed JWTs, and operational session handling.
-7. Extract the dashboard and route modules into smaller feature modules as the next features arrive; keep financial rules in the domain layer. Complete a dedicated accessibility audit and expand browser tests beyond the first workflow.
-8. AWS environment layer: VPC/networking, ECS tasks/services and IAM, least-privilege database role, TLS, load balancer, CloudFront, Route 53, remote Terraform state, deployment OIDC, backup restoration, and monitoring. No apply/deployment has occurred.
+1. Finish the transaction lifecycle UI for drafts, refunds, and corrections. The backend service and schema implement lifecycle rules, but the website currently exposes the basic post and reverse workflow only.
+2. Projects, categories/tags, stored default split rules, more split controls, and multiple cash participants in the website. The API already calculates equal, percentage, weight, and exact splits.
+3. Date-scoped reports, complete pagination, member statements with contributing-record drill-down, and fuller exports. Current dashboard totals include all posted records, activity shows the latest 100 entries, and exports cover cumulative member balances.
+4. Attachment metadata, authorized S3 uploads/downloads, and content validation. Terraform provisions storage only; the application does not yet accept attachments.
+5. Live Cognito and SES verification, refresh-token rotation, provider logout/revocation, and operational session handling. Signed JWT and mocked userInfo tests pass; these do not replace a live integration check.
+6. Extract the dashboard and route modules into smaller feature modules as features arrive; keep financial rules in the domain layer. Complete a dedicated accessibility audit and expand browser coverage to real multi-user sessions.
+7. AWS environment layer: VPC/networking, ECS tasks/services and IAM, least-privilege database role, TLS, load balancer, CloudFront, Route 53, remote Terraform state, deployment OIDC, SES sender provisioning, backup restoration, and monitoring. No apply/deployment has occurred.
 
 Optional opening balances and full historical import remain later scope. The old source files must not be treated as verified balances or imported automatically.
 
@@ -53,4 +54,4 @@ AWS region/account, domain, existing network versus a new VPC, initial environme
 
 ## Resuming
 
-Read `WEBSITE_GUIDELINES.md`, this file, and `README.md`. Start with invitations/member management or finish the transaction lifecycle UI before adding more reporting UI. Preserve the existing test suite and add meaningful authorization/concurrency tests when those features change.
+Read `WEBSITE_GUIDELINES.md`, this file, and `README.md`. Finish the transaction lifecycle UI before adding more reporting UI. Preserve the existing test suite and add meaningful authorization/concurrency tests when those features change.

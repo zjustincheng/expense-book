@@ -51,7 +51,7 @@ beforeAll(async () => {
       const subject = request.headers["x-test-subject"];
       if (typeof subject !== "string")
         throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
-      return subject;
+      return { subject, verifiedEmail: async () => `${subject}@example.test` };
     },
     { logging: false },
   );
