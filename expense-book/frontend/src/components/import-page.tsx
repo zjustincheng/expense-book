@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { api, type GroupDetail } from "@/lib/api";
 type Preview = {
   total: number;
   errors: { row: number; message: string }[];
@@ -19,6 +19,17 @@ export function ImportPage({ groupId }: { groupId: string }) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [group, setGroup] = useState<GroupDetail | null>(null);
+  const [payer, setPayer] = useState("");
+  const [confirmed, setConfirmed] = useState(0);
+  useEffect(() => {
+    api<GroupDetail>(`/groups/${groupId}`)
+      .then((value) => {
+        setGroup(value);
+        setPayer(value.members.find((member) => !member.archivedAt)?.id ?? "");
+      })
+      .catch(() => undefined);
+  }, [groupId]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const file = new FormData(event.currentTarget).get("file") as File | null;
@@ -40,6 +51,32 @@ export function ImportPage({ groupId }: { groupId: string }) {
       setError(e instanceof Error ? e.message : "Unable to preview this CSV.");
     } finally {
       setLoading(false);
+    }
+  }
+  async function confirmImport() {
+    if (!preview || !group || !payer) return;
+    const splitMemberIds = group.members
+      .filter((member) => !member.archivedAt)
+      .map((member) => member.id);
+    try {
+      const result = await api<{ count: number }>(
+        `/groups/${groupId}/import/confirm`,
+        {
+          rows: preview.rows
+            .filter(
+              (row) =>
+                !row.duplicate &&
+                (row.kind === "income" || row.kind === "expense"),
+            )
+            .map((row) => ({ ...row, cashMemberId: payer, splitMemberIds })),
+        },
+        crypto.randomUUID(),
+      );
+      setConfirmed(result.count);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to create import drafts.",
+      );
     }
   }
   return (
@@ -144,9 +181,41 @@ export function ImportPage({ groupId }: { groupId: string }) {
             </table>
           </div>
           <p className="text-sm text-stone-500">
-            Import confirmation and member allocation mapping will be the next
-            step. No rows have been added.
+            {confirmed > 0
+              ? `${confirmed} draft records created. Review them before posting.`
+              : "Choose who paid each imported activity row. Valid, non-duplicate income and expense rows will become drafts for review."}
           </p>
+          {group && confirmed === 0 && (
+            <div className="flex flex-wrap items-end gap-3 rounded-xl bg-stone-50 p-4">
+              <label>
+                Payer for imported rows
+                <select
+                  value={payer}
+                  onChange={(e) => setPayer(e.target.value)}
+                >
+                  {group.members
+                    .filter((member) => !member.archivedAt)
+                    .map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <Button
+                onClick={() => void confirmImport()}
+                disabled={
+                  !preview.rows.some(
+                    (row) =>
+                      !row.duplicate &&
+                      (row.kind === "income" || row.kind === "expense"),
+                  )
+                }
+              >
+                Create review drafts
+              </Button>
+            </div>
+          )}
         </section>
       )}
     </main>

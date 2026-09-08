@@ -20,6 +20,7 @@
 - Member statement pages with contributing-record effects and PostgreSQL-backed saved split-template records/API scaffolding.
 - Attachment storage foundation: PostgreSQL metadata with tenant-safe entry foreign keys and AWS S3 SDK dependencies are in place; signed upload/download routes and UI are the next part of this milestone.
 - Signed S3 upload and download URL routes with MIME/size limits, tenant authorization, and five-minute URL expiry. Live AWS credentials and browser upload wiring remain deployment setup work.
+- CSV imports now support a validated preview, duplicate detection, payer mapping, and explicit creation of reviewable drafts for income and expense rows. Historical rows are never posted automatically; other record types remain in preview until their member mapping is defined.
 - Terraform IAM foundation for separate ECS execution and backend runtime roles, including scoped private-attachment access and runtime secret reads.
 - Terraform ECS task definitions/services now include a public-subnet HTTPS Application Load Balancer, ACM certificate input, frontend health checks, and load-balancer-to-task security-group ingress. CloudFront, Route 53, and backend service discovery remain deployment-layer work.
 - Terraform now includes a CloudFront distribution with disabled caching, HTTPS redirect, a Route 53 alias for the application hostname, and private Cloud Map registration for backend ECS tasks. CloudFront requires a separate us-east-1 ACM certificate.
