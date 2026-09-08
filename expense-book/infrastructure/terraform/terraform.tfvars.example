@@ -1,0 +1,7 @@
+aws_region                    = "us-east-1"
+environment                   = "development"
+name_prefix                   = "replace-with-unique-prefix"
+app_url                       = "https://example.com"
+vpc_id                        = "vpc-replace"
+private_subnet_ids            = ["subnet-replace-a", "subnet-replace-b"]
+application_security_group_id = "sg-replace"

@@ -1,0 +1,1599 @@
+title = "Rental House Records"
+###
+owners = [
+  { id = "jcheng", name = "Jia Cheng" },
+  { id = "lcheng", name = "Long Cheng" },
+]
+###
+[[houses]]
+id = "808_collin"
+address = "808 Collin"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "jcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "1200 * 12", what = "rent" }]
+cost = [
+  { amount = 572.48, what = "repair" },
+  { amount = 2978.34, what = "property-tax" },
+  { amount = 41.31, what = "property-tax-protest" },
+  { amount = 405, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "12 * 1200", what = "rent" }]
+cost = [
+  { amount = 70, what = "repair" },
+  { amount = 3393.19, what = "property-tax" },
+  { amount = 37.26, what = "property-tax-protest" },
+  { amount = 505, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "1200 * 4 + 1300 * 8", what = "rent" }]
+cost = [
+  { amount = 110, what = "repair" },
+  { amount = 3351.68, what = "property-tax" },
+  { amount = 405, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "12 * 1300", what = "rent" }]
+cost = [
+  { amount = 445.00, what = "repair" },
+  { amount = 3611.50, what = "property-tax" },
+  { amount = 405.00, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "3*1300+650+1578+5*2000", what = "rent" }]
+cost = [
+  { amount = 4891.15, what = "repair" },
+  { amount = 4204.86, what = "property-tax" },
+  { amount = 445.00, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "2000*12", what = "rent" }]
+cost = [
+  { amount = 698.06, what = "repair" },
+  { amount = 4164.13, what = "property-tax" },
+  { amount = 445, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*2000", what = "rent" }]
+cost = [
+  { amount = 899, what = "repair" },
+  { amount = 4787.50, what = "property-tax" },
+  { amount = 1445, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "11*2000+1960", what = "rent" }]
+cost = [
+  { amount = 475, what = "repair" },
+  { amount = 4819.42, what = "property-tax" },
+  { amount = 1476, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "10*2000+2*1613", what = "rent" }]
+cost = [
+  { amount = 1896.50, what = "repair" },
+  { amount = 5244.57, what = "property-tax" },
+  { amount = 468.51, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "2000*12", what = "rent" }]
+cost = [
+  { amount = 168, what = "repair" },
+  { amount = 5300.86, what = "property-tax" },
+  { amount = 1056.64, what = "insurance" },
+]
+###
+[[houses]]
+id = "1019_donley"
+address = "1019 Donley"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "jcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "980 * 12", what = "rent" }]
+cost = [
+  { amount = 300.00, what = "repair" },
+  { amount = 2092.51, what = "property-tax" },
+  { amount = 23.97, what = "property-tax-protest" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "980 * 12", what = "rent" }]
+cost = [
+  { amount = 0.0, what = "repair" },
+  { amount = 469.56, what = "insurance" },
+  { amount = 2821.68, what = "property-tax" },
+  { amount = 66.15, what = "property-tax-protest" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "5 * 980 + 7 * 1130", what = "rent" }]
+cost = [
+  { amount = 590.60, what = "repair" },
+  { amount = 242.00, what = "insurance" },
+  { amount = 2730.77, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "12 * 1130", what = "rent" }]
+cost = [
+  { amount = "43 + 18", what = "repair" },
+  { amount = 282.00, what = "insurance" },
+  { amount = 3029.00, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "12 * 1130", what = "rent" }]
+cost = [
+  { amount = 300.00, what = "repair" },
+  { amount = 282.00, what = "insurance" },
+  { amount = 2952.43, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "4*1130+7*1300", what = "rent" }]
+cost = [
+  { amount = 2549.12, what = "repair" },
+  { amount = 282, what = "insurance" },
+  { amount = 2923.83, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1300", what = "rent" }]
+cost = [
+  { amount = 29, what = "repair" },
+  { amount = 282, what = "insurance" },
+  { amount = 2889.23, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "10*1300 + 2*1400", what = "rent" }]
+cost = [
+  { amount = 2200, what = "repair" },
+  { amount = 282, what = "insurance" },
+  { amount = 2857, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "1400*12", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair" },
+  { amount = 282, what = "insurance" },
+  { amount = 2958.19, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "1400*12", what = "rent" }]
+cost = [
+  { amount = 140, what = "repair" },
+  { amount = 318, what = "insurance" },
+  { amount = 3161.21, what = "property-tax" },
+]
+###
+[[houses]]
+id = "1213_crane"
+address = "1213 Crane"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "jcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "980 * 12", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair" },
+  { amount = 1869.48, what = "property-tax" },
+  { amount = 235.61, what = "property-tax-protest" },
+  { amount = 516.5, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "980 * 12", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair" },
+  { amount = 545.64, what = "insurance" },
+  { amount = 2806.04, what = "property-tax" },
+  { amount = 11.61, what = "property-tax-protest" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "3 * 980 + 9 * 1080", what = "rent" }]
+cost = [
+  { amount = 65.00, what = "repair" },
+  { amount = 624.00, what = "insurance" },
+  { amount = 2730.73, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "5 * 1080 + 7 * 1230", what = "rent" }]
+cost = [
+  { amount = "63.00 + 54.00", what = "repair" },
+  { amount = 474.00, what = "insurance" },
+  { amount = 3098.90, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "5*1230 + 7*1270", what = "rent" }]
+cost = [
+  { amount = 95, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 3457.96, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 500, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 3424.46, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12 * 1270", what = "rent" }]
+cost = [
+  { amount = 65, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 3379.23, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "11 * 1850", what = "rent" }]
+cost = [
+  { amount = 2230, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 4426.16, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "12*1850", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 4262.59, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "1850*12", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 4604.51, what = "property-tax" },
+]
+###
+[[houses]]
+id = "4121_stone_hollow"
+address = "4121 Stone Hollow"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "jcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "1300 * 12", what = "rent" }]
+cost = [
+  { amount = 242, what = "repair" },
+  { amount = 14591.69, what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "1300 * 12", what = "rent" }]
+cost = [
+  { amount = 913.00, what = "repair" },
+  { amount = 14.03, what = "property-tax-protest" },
+  { amount = 14413, what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "4 * 1300 + 5 * 1400 + 3 * 1450", what = "rent" }]
+cost = [
+  { amount = 485.00, what = "repair" },
+  { amount = "2 * 1201.16 + 10 * 1299.70", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "2 * 1450 + 9 * 1650", what = "rent" }]
+cost = [
+  { amount = 3905.85, what = "repair" },
+  { amount = "12 * 1220.00 - 183.32", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "12*1650", what = "rent" }]
+cost = [
+  { amount = 1165, what = "repair" },
+  { amount = "3*1219.99 + 9*1328.50", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "12*1650", what = "rent" }]
+cost = [
+  { amount = 225, what = "repair" },
+  { amount = "3*1328.5+9*1365.54", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1650", what = "rent" }]
+cost = [
+  { amount = 0.0, what = "repair" },
+  { amount = "3*1365.54 - 91.18 + 9*1301.19", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "10*1650 + 2*2100", what = "rent" }]
+cost = [
+  { amount = 235, what = "repair" },
+  { amount = "3*1301.19 - 133.97 + 9*1293.31", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "2100*12", what = "rent" }]
+cost = [
+  { amount = 1205, what = "repair" },
+  { amount = "3*1293.31+9*1423.97", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [
+  { amount = "11*2100", what = "rent" },
+  { amount = "2289.91", what = "insurance refund" },
+]
+cost = [
+  { amount = 557, what = "repair" },
+  { amount = "1423.97*3 + 1366.57*9", what = "mortgage" },
+]
+###
+[[houses]]
+id = "704_delta"
+address = "704 Delta"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "jcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "7*900 + 5*950", what = "rent" }]
+cost = [
+  { amount = 60, what = "repair" },
+  { amount = 9631.68, what = "mortgage" },
+  { amount = 179.00, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "12 * 950", what = "rent" }]
+cost = [
+  { amount = 75.00, what = "repair" },
+  { amount = 9589.2, what = "mortgage" },
+  { amount = 0.0, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [
+  { amount = "5 * 950 + 6 * 1250", what = "rent" },
+  { amount = 795.36, what = "mortgage refund" },
+]
+cost = [
+  { amount = 2152.5, what = "repair" },
+  { amount = "(4 * 768.68 + 8 * 939.47 + 436.15) + 20.00 + 48532.84", what = "mortgage, escrow shortage, misc, payoff" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "12 * 1250", what = "rent" }]
+cost = [
+  { amount = 2081.00, what = "repair" },
+  { amount = 150.00, what = "insurance" },
+  { amount = 3238.71, what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 320, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 3682.37, what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 515, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 3646.7, what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 184, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 3430.87, what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 748, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 3398.58, what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "7*1250 + 5*1500", what = "rent" }]
+cost = [
+  { amount = 3920, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 3569.51, what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "1500*12", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 3798.59, what = "property tax" },
+]
+###
+[[houses]]
+id = "432_souder"
+address = "432 Souder"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "jcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "5*1150 + 5*1250", what = "rent" }]
+cost = [
+  { amount = 1658.54, what = "repair" },
+  { amount = 7924.68, what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "12 * 1250", what = "rent" }]
+cost = [
+  { amount = 717.00, what = "repair" },
+  { amount = 8521.80, what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [
+  { amount = "12 * 1290", what = "rent" },
+  { amount = 2209.08, what = "mortgage refund" },
+]
+cost = [
+  { amount = 499.24, what = "repair" },
+  { amount = "3 * 713.18 + 2 * 706.44 + 7 * 1057.19", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = 15393.00, what = "rent" }]
+cost = [
+  { amount = 672.00, what = "repair" },
+  { amount = "1057.19 * 3 + 832.82 * 9", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "10*1290 + 940 + 1160", what = "rent" }]
+cost = [
+  { amount = 3415.00, what = "repair" },
+  { amount = "3*832.82 + 9*818.47", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [
+  { amount = "1*1050+1*1290+1*1300+1*1280+1*1290+7*1400", what = "rent" },
+]
+cost = [
+  { amount = 510.5, what = "repair" },
+  { amount = "3*818.47 + 6*974.43", what = "mortgage" },
+  { amount = "40708.36+19.0", what = "mortaga-payoff" },
+  { amount = 3935.53, what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1400", what = "rent" }]
+cost = [
+  { amount = 328.5, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 3866.67, what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "12*1400", what = "rent" }]
+cost = [
+  { amount = 463.50, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 4530.86, what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "12*1400", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair" },
+  { amount = 190, what = "insurance" },
+  { amount = 4386.60, what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "1400*12", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair" },
+  { amount = 60, what = "hurst city inspection" },
+  { amount = 190, what = "insurance" },
+  { amount = 5053.98, what = "property tax" },
+]
+###
+[[houses]]
+id = "3300_sage"
+address = "3300 Sage"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "jcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "10 * 1420", what = "rent" }]
+cost = [
+  { amount = 1840.28, what = "repair" },
+  { amount = "1084.15 * 11", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "12 * 1420", what = "rent" }]
+cost = [
+  { amount = 140.00, what = "repair" },
+  { amount = 12969.65, what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "2 * 1420 + 9 * 1620", what = "rent" }]
+cost = [
+  { amount = 1730.67, what = "repair" },
+  { amount = "4 * 1080 +8 * 1280.60", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "12 * 1630", what = "rent" }]
+cost = [
+  { amount = 765.00, what = "repair" },
+  { amount = "1280.60 + 1287.60 + 1280.60 + 9 * 1285.89", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "7*1630 + 5*1660", what = "rent" }]
+cost = [
+  { amount = 320, what = "repair" },
+  { amount = "3*1285.89 + 9*1302.80", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "12*1660", what = "rent" }]
+cost = [
+  { amount = 2401, what = "repair" },
+  { amount = "3*1302.8+9*1330.27", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1650", what = "rent" }]
+cost = [
+  { amount = 1492, what = "repair" },
+  { amount = "3*1330.27 - 98.90 + 9*1275.86", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "12*1650", what = "rent" }]
+cost = [
+  { amount = 248, what = "repair" },
+  { amount = "3*1275.86 + 9*1270.23 + 23.69", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "4*1650 + 8*2100", what = "rent" }]
+cost = [
+  { amount = 1010, what = "repair" },
+  { amount = "3*1270.23 + 9*1492.57", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [
+  { amount = "2100*5 + 2300*5", what = "rent" },
+  { amount = "3353-25", what = "insurance refund" },
+]
+cost = [
+  { amount = 6875.69, what = "repair" },
+  { amount = "1492.57*3 + 1746.25*9", what = "mortgage" },
+]
+###
+[[houses]]
+id = "501_foxcraft"
+address = "501 Foxcraft DR"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "jcheng"
+notes = [
+  "This house was closed in October 2020",
+  "2020 clearing was done on 05/16/2021",
+]
+[[houses.cash_flow]]
+year = 2020
+income = []
+cost = [
+  { amount = 6090, what = "repair in 2020" },
+  { amount = 450.00, what = "appraisal", who = "lcheng" },
+  { amount = 487.13, what = "survey", who = "lcheng" },
+  { amount = 225, what = "rental schedule" },
+  { amount = 1500, what = "kickback to Michelle Long" },
+  { amount = 58502.45, what = "cash to close" },
+  { amount = "1*1337.05", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "7*2350", what = "rent" }]
+cost = [
+  { amount = 1627.65, what = "repair" },
+  { amount = "2 * 200.75", what = "hoa fee" },
+  { amount = "5*1337.05 + 7*781.26 - 4370.19", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "12*2300", what = "rent" }]
+cost = [
+  { amount = 2790, what = "repair" },
+  { amount = "2 * 200.75", what = "hoa fee" },
+  { amount = "12*781.26", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "4*2300 + 8*2500", what = "rent" }]
+cost = [
+  { amount = 640.75, what = "repair" },
+  { amount = "2*220.83", what = "hoa fee" },
+  { amount = "781.26 + 11*2541.69", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "2500*7 + 2739*5", what = "rent" }]
+cost = [
+  { amount = 3281.74, what = "repair" },
+  { amount = "2*220.83", what = "hoa fee" },
+  { amount = "2541.69*1 + 1828.53*11", what = "mortgage" },
+]
+###
+[[houses]]
+id = "4937_parkrise"
+address = "4937 Parkrise DR"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "jcheng"
+notes = [
+  "This house was closed on 07/31/2023",
+  "2023 clearing was done on 03/31/2024",
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "1*813 + 4*2800", what = "rent" }]
+cost = [
+  { amount = 286007.58, what = "cash to close" },
+  { amount = 1857, what = "repair in 2023" },
+  { amount = 1851, what = "insurance" },
+  { amount = 193, what = "hoa" },
+  { amount = "7792.84-4184.88", what = "property tax" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "2800*8 + 2683*4", what = "rent" }]
+cost = [
+  { amount = 55, what = "repair" },
+  { amount = 2505, what = "insurance" },
+  { amount = 193, what = "hoa" },
+  { amount = 6909.81, what = "property tax" },
+]
+###
+[[houses]]
+id = "810_midcreek"
+address = "810 Midcreek"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "lcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "920*3 + 970*9", what = "rent" }]
+cost = [
+  { amount = 315.99, what = "repair", who = "jcheng" },
+  { amount = 607, what = "insurance" },
+  { amount = 1931.58, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "970 * 12", what = "rent" }]
+cost = [
+  { amount = 1369, what = "repair", who = "jcheng" },
+  { amount = 2322.08, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "970 * 9 + 3 * 1070", what = "rent" }]
+cost = [
+  { amount = 750, what = "repair", who = "jcheng" },
+  { amount = 2590.74, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "5 * 1070 + 7 * 1250", what = "rent" }]
+cost = [
+  { amount = 338, what = "repair", who = "jcheng" },
+  { amount = 3029.00, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 190, what = "repair", who = "jcheng" },
+  { amount = 3361.22, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 300, what = "repair", who = "jcheng" },
+  { amount = 3328.66, what = "property-tax" },
+  { amount = 230, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 733, what = "repair", who = "jcheng" },
+  { amount = 3284.70, what = "property-tax" },
+  { amount = 230, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "12*1250", what = "rent", who = "jcheng" }]
+cost = [
+  { amount = 95, what = "repair", who = "jcheng" },
+  { amount = 4265.54, what = "property-tax" },
+  { amount = 241, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "12*1250", what = "rent", who = "jcheng" }]
+cost = [
+  { amount = 550, what = "repair", who = "jcheng" },
+  { amount = 4097.60, what = "property-tax" },
+  { amount = 265, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "1250*1 + 1700*6", what = "rent", who = "jcheng" }]
+cost = [
+  { amount = 6452.34, what = "repair", who = "jcheng" },
+  { amount = 4720.84, what = "property-tax" },
+  { amount = 271, what = "insurance" },
+]
+###
+[[houses]]
+id = "1308_johns"
+address = "1308 Johns"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "lcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "1050 * 12", what = "rent" }]
+cost = [
+  { amount = 405.24, what = "repair", who = "jcheng" },
+  { amount = 634, what = "insurance" },
+  { amount = 2040.87, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "1050 * 12", what = "rent" }]
+cost = [
+  { amount = 145.00, what = "repair", who = "jcheng" },
+  { amount = 1674.89, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "1 * 1050 + 9 * 1350", what = "rent" }]
+cost = [
+  { amount = 3346.31, what = "repair", who = "jcheng" },
+  { amount = 1719.19, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "12 * 1350", what = "rent" }]
+cost = [
+  { amount = 132.00, what = "repair", who = "jcheng" },
+  { amount = 2166.00, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "12*1350", what = "rent" }]
+cost = [
+  { amount = 270, what = "repair", who = "jcheng" },
+  { amount = 2157.55, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "12*1350", what = "rent" }]
+cost = [
+  { amount = 1142, what = "repair", who = "jcheng" },
+  { amount = 2136.65, what = "property-tax" },
+  { amount = 230, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1350", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair", who = "jcheng" },
+  { amount = 2108.43, what = "property-tax" },
+  { amount = 230, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "12*1350", what = "rent", who = "jcheng" }]
+cost = [
+  { amount = 30, what = "repair", who = "jcheng" },
+  { amount = 2322.64, what = "property-tax" },
+  { amount = 247, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [
+  { amount = "4*1350 + 5*1450", what = "rent", who = "jcheng" },
+  { amount = "1*1350", what = "rent" },
+]
+cost = [
+  { amount = 1391, what = "repair", who = "jcheng" },
+  { amount = 2164.04, what = "property-tax" },
+  { amount = 266, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [
+  { amount = "1388*2 + 1990*8 + 1864*2", what = "rent", who = "jcheng" },
+  { amount = "612*2", what = "Jan/Feb tenant portion" },
+]
+cost = [
+  { amount = 776, what = "repair", who = "jcheng" },
+  { amount = 2334.48, what = "property-tax" },
+  { amount = 280, what = "insurance" },
+]
+###
+[[houses]]
+id = "800_fayette"
+address = "800 Fayette"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "lcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "5*990 + 6*1250", what = "rent" }]
+cost = [
+  { amount = 1642.88, what = "repair", who = "jcheng" },
+  { amount = 2498.23, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "12 * 1250", what = "rent" }]
+cost = [
+  { amount = 585.00, what = "repair", who = "jcheng" },
+  { amount = 1855.42, what = "property-tax" },
+  { amount = 34.41, what = "property-tax-protest" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "1 * 1050 + 11 * 1250", what = "rent" }]
+cost = [
+  { amount = 25, what = "repair", who = "jcheng" },
+  { amount = 1750.50, what = "property-tax" },
+  { amount = 548.64, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "12 * 1250", what = "rent" }]
+cost = [
+  { amount = 0.0, what = "repair", who = "jcheng" },
+  { amount = 2027.00, what = "property-tax" },
+  { amount = 230.00, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 0.0, what = "repair", who = "jcheng" },
+  { amount = 2157.55, what = "property-tax" },
+  { amount = 230, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 0.0, what = "repair", who = "jcheng" },
+  { amount = 2136.65, what = "property-tax" },
+  { amount = 230, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair", who = "jcheng" },
+  { amount = 2446.47, what = "property-tax" },
+  { amount = 241, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "12*1250", what = "rent", who = "jcheng" }]
+cost = [
+  { amount = 415, what = "repair", who = "jcheng" },
+  { amount = 2404.75, what = "property-tax" },
+  { amount = 245, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "4*1250 + 8*1450", what = "rent", who = "jcheng" }]
+cost = [
+  { amount = 529, what = "repair", who = "jcheng" },
+  { amount = 2415.76, what = "property-tax" },
+  { amount = 264, what = "insurance" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "1450*11", what = "rent", who = "jcheng" }]
+cost = [
+  { amount = 0, what = "repair", who = "jcheng" },
+  { amount = 2615.71, what = "property-tax" },
+  { amount = 303, what = "insurance" },
+]
+###
+[[houses]]
+id = "4814_arabian"
+address = "4814 Arabian"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "lcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "1500 * 12", what = "rent" }]
+cost = [
+  { amount = 551.84, what = "repair", who = "jcheng" },
+  { amount = "954.33*2 + 972.38*10", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "1500 * 12", what = "rent" }]
+cost = [
+  { amount = 49.00, what = "repair", who = "jcheng" },
+  { amount = 70.57, what = "property-tax-protest" },
+  { amount = 11757.96, what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "1500 * 12", what = "rent" }]
+cost = [
+  { amount = 280, what = "repair", who = "jcheng" },
+  { amount = "2 * 981.32 + 8 * 1070.94", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "1500 * 12", what = "rent" }]
+cost = [
+  { amount = 45, what = "repair", who = "jcheng" },
+  { amount = "2 * 1070.94 + 2 * 1015.29 + 8 * 1139.72", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "12*1500", what = "rent" }]
+cost = [
+  { amount = 171, what = "repair", who = "jcheng" },
+  { amount = "9*1294.10 + 3*1139.72", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "12*1500", what = "rent" }]
+cost = [
+  { amount = 45, what = "repair", who = "jcheng" },
+  { amount = "3*1294.10+9*1183.96", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1500", what = "rent" }]
+cost = [
+  { amount = 120, what = "repair", who = "jcheng" },
+  { amount = "3*1183.96 + 9*1474.38 + 2000 - 2081.49", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [
+  { amount = "12*1500", what = "rent", who = "jcheng" },
+  { amount = 17474.61, what = "roof repair insurance payment" },
+]
+cost = [
+  { amount = 17074.61, what = "roof repair", who = "jcheng" },
+  { amount = 0, what = "repair", who = "jcheng" },
+  { amount = "3*1474.38 - 3321.64 + 6*1207.05 + 3*1256.38", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "8*1500 + 4*2000", what = "rent", who = "jcheng" }]
+cost = [
+  { amount = 65, what = "repair", who = "jcheng" },
+  { amount = "8*1766.32 + 4*1256.38", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [
+  { amount = "2000*12", what = "rent", who = "jcheng" },
+  { amount = "1521.69", what = "mortgage refund" },
+]
+cost = [
+  { amount = 2230, what = "repair", who = "jcheng" },
+  { amount = "1766.32*4 + 1429.55*8", what = "mortgage" },
+]
+###
+[[houses]]
+id = "906_cannon"
+address = "906 Cannon"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "lcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "1100 * 12", what = "rent" }]
+cost = [
+  { amount = 1521.35, what = "repair", who = "jcheng" },
+  { amount = "658.77*2 + 631.81*10 - 201.70", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "1100 * 12", what = "rent" }]
+cost = [
+  { amount = 80, what = "repair", who = "jcheng" },
+  { amount = 7853.82, what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "12 * 1100", what = "rent" }]
+cost = [
+  { amount = 2246.18, what = "repair", who = "jcheng" },
+  { amount = "2 * 659.02 + 10 * 778.34", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "4 * 1100 + 8 * 1250", what = "rent" }]
+cost = [
+  { amount = 490.00, what = "repair", who = "jcheng" },
+  { amount = "2 * 778.34 + 2 * 701.27 + 8 * 768.82", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "12*1250", what = "rent" }]
+cost = [
+  { amount = 388, what = "repair", who = "jcheng" },
+  { amount = "9*738.76 + 3*768.82", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "5*1250+1550+5*1500", what = "rent" }]
+cost = [
+  { amount = 6800.48, what = "repair", who = "jcheng" },
+  { amount = "3*738.76+9*881.19", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1500", what = "rent" }]
+cost = [
+  { amount = 1170, what = "repair", who = "jcheng" },
+  { amount = "3*881.19 + 9*785.44 - 133.08", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [
+  { amount = "10*1500 + 2*1271", what = "rent" },
+  { amount = "458", what = "rent", who = "jcheng" },
+]
+cost = [
+  { amount = 480, what = "repair", who = "jcheng" },
+  { amount = "3*785.44 - 272.05 + 9*790.72", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [
+  { amount = "2924.00 + 1048", what = "rent from sec8 received by lcheng" },
+  { amount = "482 + 107 + 8*1850", what = "rent", who = "jcheng" },
+]
+cost = [
+  { amount = 2384.49, what = "repair", who = "jcheng" },
+  { amount = "8*791.16 + 4*790.72", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "1850*12", what = "rent", who = "jcheng" }]
+cost = [
+  { amount = 2093, what = "repair", who = "jcheng" },
+  { amount = "791.16*4 + 931.62*8", what = "mortgage" },
+]
+###
+[[houses]]
+id = "859_henslee"
+address = "859 Henslee"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "lcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "1250*11 + 300", what = "rent and 300 deposit kept" }]
+cost = [
+  { amount = 879.49, what = "repair", who = "jcheng" },
+  { amount = 194.00, what = "insurance" },
+  { amount = 1770.41, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "1250 * 6 + 1200 * 5", what = "rent" }]
+cost = [
+  { amount = 639.00, what = "repair", who = "jcheng" },
+  { amount = 194.00, what = "insurance" },
+  { amount = 2423.37, what = "property-tax" },
+  { amount = 5.32, what = "property-tax-protest" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "12 * 1200", what = "rent" }]
+cost = [
+  { amount = 195, what = "repair", who = "jcheng" },
+  { amount = 194.00, what = "insurance" },
+  { amount = 2684.09, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "12 * 1200", what = "rent" }]
+cost = [
+  { amount = 3471.00, what = "repair", who = "jcheng" },
+  { amount = 234.00, what = "insurance" },
+  { amount = 2679.50, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "9*1200 + 1250 + 1350", what = "rent" }]
+cost = [
+  { amount = 3325.84, what = "repair", who = "jcheng" },
+  { amount = 234.00, what = "insurance" },
+  { amount = 3406.65, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "11*1350+1*1250", what = "rent" }]
+cost = [
+  { amount = 20, what = "repair", who = "jcheng" },
+  { amount = 234.00, what = "insurance" },
+  { amount = 3373.65, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1350", what = "rent" }]
+cost = [
+  { amount = 3547.00, what = "repair", who = "jcheng" },
+  { amount = 249.00, what = "insurance" },
+  { amount = 3140.98, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [{ amount = "11*1350 + 1*1150", what = "rent" }]
+cost = [
+  { amount = 357.91, what = "repair", who = "jcheng" },
+  { amount = 251.00, what = "insurance" },
+  { amount = 3112.58, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [{ amount = "12*1350", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair", who = "jcheng" },
+  { amount = 273, what = "insurance" },
+  { amount = 3570.49, what = "property-tax" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [{ amount = "12*1350", what = "rent" }]
+cost = [
+  { amount = 0, what = "repair", who = "jcheng" },
+  { amount = 273, what = "insurance" },
+  { amount = 3488.63, what = "property-tax" },
+]
+###
+[[houses]]
+id = "2513_meadow_creek"
+address = "2513 Meadow Creek"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "lcheng"
+notes = []
+[[houses.cash_flow]]
+year = 2015
+income = [{ amount = "1550 * 12", what = "rent" }]
+cost = [
+  { amount = 288.22, what = "repair", who = "jcheng" },
+  { amount = "1427.47*5 + 1342.97*7", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2016
+income = [{ amount = "1550 * 8 + 1750 * 3", what = "rent" }]
+cost = [
+  { amount = 1405.00, what = "repair", who = "jcheng" },
+  { amount = "1342.97 * 5 + 1193.81 * 7", what = "mortgage" },
+  { amount = 102.31, what = "property-tax-protest" },
+]
+[[houses.cash_flow]]
+year = 2017
+income = [{ amount = "1750 * 12", what = "rent" }]
+cost = [
+  { amount = 430, what = "repair", who = "jcheng" },
+  { amount = "5 * 1193.81 + 7 * 1317.24", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "9 * 1750 + 3 * 1798", what = "rent" }]
+cost = [
+  { amount = 1013.00, what = "repair", who = "jcheng" },
+  { amount = "4 * 1317.24 + 8 * 1298.49", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "9*1798 + 3*1750", what = "rent" }]
+cost = [
+  { amount = 2175.00, what = "repair", who = "jcheng" },
+  { amount = "9*1361.15 + 3*1298.49", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [{ amount = "8*1750 + 4*1950", what = "rent" }]
+cost = [
+  { amount = 553.5, what = "repair", who = "jcheng" },
+  { amount = "3*1361.15 + 9*1392.98", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12 * 1950", what = "rent" }]
+cost = [
+  { amount = 202, what = "repair", who = "jcheng" },
+  { amount = "3*1392.98 + 9*1398.56", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [
+  { amount = "9*1662 + 2*1421 + 1*1649", what = "rent" },
+  { amount = "3951", what = "rent", who = "jcheng" },
+]
+cost = [
+  { amount = 625, what = "repair", who = "jcheng" },
+  { amount = "3*1398.56 - 284.45 + 6*1379.52 + 3*1388.48", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [
+  { amount = "9*1836 + 1*2149 + 2*2137", what = "rent" },
+  { amount = "9*(2450-1836) + 1*(2450-2149) +2*(2450-2137)", what = "rent", who = "jcheng" },
+]
+cost = [
+  { amount = 0, what = "repair", who = "jcheng" },
+  { amount = "8*1619.19 + 4*1388.48", what = "mortgage" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [
+  { amount = "2137*9 + 1599*3", what = "rent" },
+  { amount = "313*9 + 851*3", what = "rent", who = "jcheng" },
+  { amount = 750.39, what = "Mortgage refund" },
+  { amount = 812.29, what = "Mortgage refund" },
+  { amount = 13514.84, what = "Insurance Hail Damage Payment" },
+  { amount = 17465.24, what = "Insurance Hail Damage Payment" },
+]
+cost = [
+  { amount = 1605, what = "repair", who = "jcheng" },
+  { amount = "1619.19*4 + 1436.71*4 + 1341.90*4", what = "mortgage" },
+  { amount = 13000.00, what = "Hail Damage Repair Payment" },
+  { amount = 19245.71, what = "Hail Damage Repair Payment" },
+]
+###
+[[houses]]
+id = "603_flooded_gum"
+address = "603 Flooded Gum"
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+keeper = "lcheng"
+notes = [
+  "This house was closed in December 2017",
+  "2017 clearing was done on 02/03/2018",
+  "received 2500$ deposit in 2019",
+]
+[[houses.cash_flow]]
+year = 2017
+income = []
+cost = [
+  { amount = 9588.35, what = "repair before renting", who = "jcheng" },
+  { amount = 150, what = "option fee", who = "jcheng" },
+  { amount = 445.00, what = "appraisal" },
+  { amount = 49845.27, what = "cash to close/purchase" },
+  { amount = 1800.00, what = "earnest money" },
+]
+[[houses.cash_flow]]
+year = 2018
+income = [{ amount = "11 * 2500 + 2500", what = "rent & deposit" }]
+cost = [
+  { amount = 478.25, what = "repair", who = "jcheng" },
+  { amount = "11 * 1214.49 - 64.00", what = "mortgage" },
+  { amount = "3 * 72.60 + 73.69", what = "hoa fee" },
+]
+[[houses.cash_flow]]
+year = 2019
+income = [{ amount = "1*2500 + (1903+242) + 9*1907", what = "rent" }]
+cost = [
+  { amount = 708, what = "repair", who = "jcheng" },
+  { amount = "12*1209.92", what = "mortgage" },
+  { amount = "4*72.60", what = "hoa fee" },
+]
+[[houses.cash_flow]]
+year = 2020
+income = [
+  { amount = "12*1907", what = "rent" },
+  { amount = "1410.00", what = "insurance refund" },
+]
+cost = [
+  { amount = 500, what = "escrow shortage" },
+  { amount = 112, what = "repair", who = "jcheng" },
+  { amount = "2*1209.92 + 10*1316.61", what = "mortgage" },
+  { amount = "4*74.59", what = "hoa fee" },
+]
+[[houses.cash_flow]]
+year = 2021
+income = [{ amount = "12*1907", what = "rent" }]
+cost = [
+  { amount = 50, what = "repair", who = "jcheng" },
+  { amount = "2*1316.61 + 10*1291.46", what = "mortgage" },
+  { amount = "3*74.59 + 123.99", what = "hoa fee" },
+]
+[[houses.cash_flow]]
+year = 2022
+income = [
+  { amount = "1*884 + 11*1530", what = "rent" },
+  { amount = "5170", what = "rent", who = "jcheng" },
+  { amount = "1153.00", what = "insurance refund" },
+]
+cost = [
+  { amount = 138, what = "repair", who = "jcheng" },
+  { amount = "2*1291.46 + 10*1481.17", what = "mortgage" },
+  { amount = "4*74.59", what = "hoa fee" },
+]
+[[houses.cash_flow]]
+year = 2023
+income = [
+  { amount = "1*1530 + 4*185 + 7*878", what = "rent" },
+  { amount = "1*(1907-1530) + 4*(1907-185) + 7*(2600-878)", what = "rent", who = "jcheng" },
+]
+cost = [
+  { amount = 580, what = "repair", who = "jcheng" },
+  { amount = "1*1481.17 + 8*1430.38 + 3*1449.79", what = "mortgage" },
+  { amount = "3*74.59+1*51.99", what = "hoa fee" },
+]
+[[houses.cash_flow]]
+year = 2024
+income = [
+  { amount = "878*1 + 1058*4 + 2098*7", what = "rent" },
+  { amount = "11404", what = "rent", who = "jcheng" },
+]
+cost = [
+  { amount = 183, what = "repair", who = "jcheng" },
+  { amount = "1449.79*3 + 1560.41*9", what = "mortgage" },
+  { amount = "51.99*4", what = "hoa fee" },
+]
+###
+[shared]
+owners = [{ id = "jcheng", share = 0.5 }, { id = "lcheng", share = 0.5 }]
+notes = []
+[[shared.cash_flow]]
+year = 2015
+income = []
+cost = [
+  { amount = 1790.96, who = "jcheng", what = "Tool & Material Costs" },
+  { amount = 518.00, who = "jcheng", what = "Liability Insurance For 7 Houses Under Jia" },
+  { amount = 1000, who = "lcheng", what = "New Year Gift To Dad", for_house = false },
+]
+[[shared.cash_flow]]
+year = 2016
+income = []
+cost = [
+  { amount = 885.57, who = "jcheng", what = "Tool & Material Costs" },
+  { amount = 364, who = "jcheng", what = "Liability Insurance For 7 Houses Under Jia" },
+  { amount = 1500, who = "jcheng", what = "JiQin Daughter's Wedding Gift", for_house = false },
+]
+[[shared.cash_flow]]
+year = 2017
+income = []
+cost = [
+  { amount = 1128.00, who = "jcheng", what = "tool & material costs" },
+  { amount = "624 - 5 * 52", who = "jcheng", what = "liability insurance for 7 houses under jia, excluding Jia's own properties" },
+  { amount = 794.03, who = "jcheng", what = "gas cost" },
+  { amount = 121.05, who = "jcheng", what = "property tax protest" },
+  { amount = 632.22, who = "lcheng", what = "property tax protest" },
+]
+[[shared.cash_flow]]
+year = 2018
+income = [
+  { amount = 11746.69, who = "jcheng", what = "3300_sage insurance income" },
+  { amount = 3566.02, who = "jcheng", what = "432_souder insurance income" },
+  { amount = 1357.24, who = "jcheng", what = "1213_crane insurance income" },
+  { amount = 5786.04, who = "lcheng", what = "800_fayette insurance income" },
+  { amount = 269.54, who = "lcheng", what = "603_flooded_gum insurance income" },
+  { amount = 10351.07, who = "lcheng", what = "2513_meadow_creek insurance income" },
+]
+cost = [
+  { amount = "210 + 75 + 164 + 158 + 119", who = "jcheng", what = "property tax protest" },
+  { amount = "60 + 142 + 65 + 120 + 130 + 104 + 112", who = "lcheng", what = "property tax protest" },
+  { amount = 410.00, who = "jcheng", what = "tool & material costs" },
+  { amount = "(728 / 14) * 7", who = "jcheng", what = "liability insurance for 7 houses under jia, excluding Jia's own properties" },
+  { amount = 794.03, who = "jcheng", what = "gas cost" },
+]
+[[shared.cash_flow]]
+year = 2019
+income = []
+cost = [
+  { amount = "261.29+1181.70", who = "lcheng", what = "property tax protest" },
+  { amount = 990.85, who = "jcheng", what = "tool & material costs" },
+  { amount = "(728 / 14) * 7", who = "jcheng", what = "liability insurance for 7 houses under jia, excluding Jia's own properties" },
+  { amount = 794.03, who = "jcheng", what = "gas cost" },
+]
+[[shared.cash_flow]]
+year = 2020
+income = []
+cost = [
+  { amount = "30.8+5.89+35.88", who = "lcheng", what = "property tax protest" },
+  { amount = "17.45+6.21", who = "jcheng", what = "property tax protest" },
+  { amount = 500, who = "jcheng", what = "tool & material costs" },
+  { amount = "(728 / 14) * 7", who = "jcheng", what = "liability insurance for 7 houses under jia, excluding Jia's own properties" },
+  { amount = 794.03, who = "jcheng", what = "gas cost" },
+]
+[[shared.cash_flow]]
+year = 2021
+income = []
+cost = [
+  { amount = 0, who = "lcheng", what = "property tax protest" },
+  { amount = 0, who = "jcheng", what = "property tax protest" },
+  { amount = 500, who = "jcheng", what = "tool & material costs" },
+  { amount = "(728 / 14) * 7", who = "jcheng", what = "liability insurance for 7 houses under jia, excluding Jia's own properties" },
+  { amount = 794.03, who = "jcheng", what = "gas cost" },
+]
+[[shared.cash_flow]]
+year = 2022
+income = []
+cost = [
+  { amount = "179.19+626.24", who = "lcheng", what = "property tax protest" },
+  { amount = "193.15+192.27+80.83+140.60+134.38+134.71+62.52", who = "jcheng", what = "property tax protest" },
+  { amount = 500, who = "jcheng", what = "tool & material costs" },
+  { amount = "(728 / 14) * 7", who = "jcheng", what = "liability insurance for 7 houses under jia, excluding Jia's own properties" },
+  { amount = 794.03, who = "jcheng", what = "gas cost" },
+  { amount = 78, who = "jcheng", what = "california-trip: gas", for_house = false },
+  { amount = 70, who = "jcheng", what = "california-trip: gas", for_house = false },
+  { amount = 1094, who = "lcheng", what = "california-trip: universal studio ticket", for_house = false },
+  { amount = 169, who = "lcheng", what = "california-trip: 火锅", for_house = false },
+  { amount = 200, who = "jcheng", what = "california-trip: 湖南餐馆", for_house = false },
+  { amount = 161, who = "lcheng", what = "california-trip: 小镇意大利餐馆", for_house = false },
+  { amount = 90, who = "lcheng", what = "california-trip: 旅店墨西哥餐馆", for_house = false },
+  { amount = 53, who = "jcheng", what = "california-trip: gas", for_house = false },
+  { amount = 194, who = "jcheng", what = "california-trip: 旧金山川流不息", for_house = false },
+  { amount = 79, who = "lcheng", what = "california-trip: 渔人码头面包", for_house = false },
+  { amount = 180, who = "jcheng", what = "california-trip: 赫斯古堡ticket", for_house = false },
+  { amount = 69, who = "jcheng", what = "california-trip: 红木公园ticket", for_house = false },
+  { amount = 49, who = "lcheng", what = "california-trip: gas", for_house = false },
+  { amount = 220, who = "jcheng", what = "california-trip: 小镇海鲜", for_house = false },
+  { amount = 1202, who = "jcheng", what = "california-trip: LA AirBNB", for_house = false },
+  { amount = 160, who = "jcheng", what = "california-trip: 赫斯古堡hotel", for_house = false },
+  { amount = 1860, who = "jcheng", what = "california-trip: SF AirBNB", for_house = false },
+  { amount = 1229, who = "jcheng", what = "california-trip: car rental", for_house = false },
+]
+[[shared.cash_flow]]
+year = 2023
+income = [
+  { amount = "207.61", who = "lcheng", what = "Property Gas/Oil dividend" },
+]
+cost = [
+  { amount = "8*50", who = "lcheng", what = "property tax protest" },
+  { amount = "8*50", who = "jcheng", what = "property tax protest" },
+  { amount = 500, who = "jcheng", what = "tool & material costs" },
+  { amount = "(728 / 14) * 7", who = "jcheng", what = "liability insurance for 7 houses under jia, excluding Jia's own properties" },
+  { amount = 1000, who = "jcheng", what = "gas cost" },
+  { amount = "2102.42", who = "jcheng", what = "florida trip flight ticket", for_house = false },
+  { amount = "2074.05", who = "jcheng", what = "florida trip housing", for_house = false },
+  { amount = "383.01", who = "jcheng", what = "florida trip car rental", for_house = false },
+  { amount = "947.93", who = "jcheng", what = "florida trip food", for_house = false },
+  { amount = "29.8+1.27+20+7.9+3+74.90", who = "jcheng", what = "florida trip parking", for_house = false },
+  { amount = "44", who = "lcheng", what = "florida trip parking", for_house = false },
+  { amount = "70.39", who = "jcheng", what = "florida trip uber", for_house = false },
+  { amount = "26", who = "lcheng", what = "florida trip lyft", for_house = false },
+  { amount = "35", who = "lcheng", what = "florida trip hemingway tickets", for_house = false },
+  { amount = "174+80.63", who = "jcheng", what = "florida trip vizcaya & butterfly tickets", for_house = false },
+  { amount = "72.57", who = "jcheng", what = "florida trip gas", for_house = false },
+  { amount = "1879", who = "jcheng", what = "2023 April/May China trip: 13000 RMB = 13000/6.92 = 1879 $; uncle, wenming, auntie", for_house = false },
+  { amount = "619 * 2", who = "jcheng", what = "2023 Liu Hong/Zhang Yuheng Washingto DC trip", for_house = false },
+  { amount = "416.67", who = "lcheng", what = "珞珈赋酒: 3000 RMB = 3000/7.2 = 416.67 $", for_house = false },
+]
+[[shared.cash_flow]]
+year = 2024
+income = []
+cost = [
+  { amount = "636.84+207.77", who = "lcheng", what = "property tax protest" },
+  { amount = "1584.75", who = "jcheng", what = "property tax protest" },
+  { amount = 500, who = "jcheng", what = "tool & material costs" },
+  { amount = "(803 / 14) * 7", who = "jcheng", what = "liability insurance for 7 houses under jia, excluding Jia's own properties" },
+  { amount = 1000, who = "jcheng", what = "gas cost" },
+  { amount = "1012.59", who = "jcheng", what = "2024 South Padre AirBNB", for_house = false },
+  { amount = "376.21", who = "lcheng", what = "2024 South Padre Misc: 23.90(gas) + 27.20(gas) + 141.67(food) + 45.03(gas) + 38.01(gas) + 100.40(food)", for_house = false },
+]
+[[shared.cash_flow]]
+year = 2025
+income = []
+cost = [
+  { amount = "1135.05", who = "lcheng", what = "2025 california-trip cost", for_house = false },
+  { amount = "5155.03", who = "jcheng", what = "2025 california-trip cost", for_house = false },
+  { amount = "885.27",  who = "jcheng", what = "2025 horseshoe bay trip housing cost", for_house = false },
+]
+###
+[misc]
+[[misc.pay_flow]]
+year = 2016
+items = [
+  { amount = "12 * 20", payee = "jcheng", payer = "lcheng", what = "Catherine's T-Mobile Cell Plan" },
+]
+[[misc.pay_flow]]
+year = 2017
+items = [
+  { amount = "12 * 20", payee = "jcheng", payer = "lcheng", what = "Catherine's T-Mobile Cell Plan" },
+]
+[[misc.pay_flow]]
+year = 2018
+items = [
+  { amount = "12 * 40", payee = "jcheng", payer = "lcheng", what = "Yuheng & Catherine's T-Mobile Cell Plan" },
+  { amount = "4000", payee = "lcheng", payer = "jcheng", what = "Long sent 4000$ (or 26800 RMB) to Jia for his trip to China on 3/3/19" },
+]
+[[misc.pay_flow]]
+year = 2019
+items = [
+  { amount = "12 * 40", payee = "jcheng", payer = "lcheng", what = "Yuheng & Catherine's T-Mobile Cell Plan" },
+]
+[[misc.pay_flow]]
+year = 2020
+items = [
+  { amount = "12 * 40", payee = "jcheng", payer = "lcheng", what = "Yuheng & Catherine's T-Mobile Cell Plan" },
+]
+[[misc.pay_flow]]
+year = 2021
+items = [
+  { amount = "12 * 40", payee = "jcheng", payer = "lcheng", what = "Yuheng & Catherine's T-Mobile Cell Plan" },
+  { amount = 8702.73, payee = "lcheng", payer = "jcheng", what = "November Rents and Roof Claim Split, from Jia to Long" },
+  { amount = 6661.00, payee = "lcheng", payer = "jcheng", what = "December Rents, from Jia to Long" },
+  { amount = 4680, payee = "jcheng", payer = "lcheng", what = "Hawaii Travel expense, from Long to Jia" },
+]
+[[misc.pay_flow]]
+year = 2022
+items = [
+  { amount = "12 * 40", payee = "jcheng", payer = "lcheng", what = "Yuheng & Catherine's T-Mobile Cell Plan" },
+  { amount = 49303.5, payee = "jcheng", payer = "lcheng", what = "pay back for advance cash payment from Jia to Long" },
+]
+[[misc.pay_flow]]
+year = 2023
+items = [
+  { amount = "1500", payee = "jcheng", payer = "lcheng", what = "Refund deposit to Jia/Tenant for Cannon" },
+  { amount = "12*20 + 12*20 + 6*20", payee = "jcheng", payer = "lcheng", what = "Yuheng, Catherine and Justin's T-Mobile Cell Plan" },
+]
+[[misc.pay_flow]]
+year = 2024
+items = [
+  { amount = "3354", payee = "jcheng", payer = "lcheng", what = "cost owed by Long to Jia for Alaska trip" },
+  { amount = "950", payee = "jcheng", payer = "lcheng", what = "Refund deposit to Jia/Tenant for 810 Midcreek" },
+  { amount = "50", payee = "jcheng", payer = "lcheng", what = "Catherine's T-Mobile International Data for Aferica's trip" },
+  { amount = "12 * 25 + 12*25 + 12*25", payee = "jcheng", payer = "lcheng", what = "Yuheng, Catherine and Justin's T-Mobile Cell Plan" },
+  { amount = "2500", payee = "jcheng", payer = "lcheng", what = "Refund deposit to Jia/Tenant for 800 Fayette" },
+]
