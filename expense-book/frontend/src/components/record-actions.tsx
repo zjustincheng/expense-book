@@ -196,6 +196,10 @@ export function RecordDetails({
   const [detail, setDetail] = useState<EntryDetail | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [attachments, setAttachments] = useState<
+    { id: string; fileName: string; contentType: string; size: number }[]
+  >([]);
+  const [uploading, setUploading] = useState(false);
   const [action, setAction] = useState<"refund" | "reverse" | "correct" | null>(
     null,
   );
@@ -205,6 +209,11 @@ export function RecordDetails({
     setAction(null);
     try {
       setDetail(await api<EntryDetail>(`/groups/${group.id}/entries/${id}`));
+      setAttachments(
+        await api<typeof attachments>(
+          `/groups/${group.id}/entries/${id}/attachments`,
+        ),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to load record.");
     } finally {
@@ -250,6 +259,95 @@ export function RecordDetails({
           {detail.correctionReason && (
             <p>Correction reason: {detail.correctionReason}</p>
           )}
+          <section className="rounded-xl border border-stone-200 p-4">
+            <h4 className="font-semibold">Attachments</h4>
+            <p className="mt-1 text-xs text-stone-500">
+              PDF, PNG, JPEG, WebP, or text files up to 10 MB. Files are
+              private.
+            </p>
+            <label className="mt-3">
+              Upload attachment
+              <input
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp,text/plain"
+                disabled={uploading}
+                onChange={async (event) => {
+                  const file = event.currentTarget.files?.[0];
+                  if (!file) return;
+                  setUploading(true);
+                  setError("");
+                  try {
+                    const created = await api<{
+                      id: string;
+                      uploadUrl: string;
+                    }>(`/groups/${group.id}/entries/${detail.id}/attachments`, {
+                      fileName: file.name,
+                      contentType: file.type,
+                      size: file.size,
+                    });
+                    const response = await fetch(created.uploadUrl, {
+                      method: "PUT",
+                      headers: { "Content-Type": file.type },
+                      body: file,
+                    });
+                    if (!response.ok)
+                      throw new Error("Upload failed. Try again.");
+                    setAttachments(
+                      await api<typeof attachments>(
+                        `/groups/${group.id}/entries/${detail.id}/attachments`,
+                      ),
+                    );
+                  } catch (e) {
+                    setError(
+                      e instanceof Error
+                        ? e.message
+                        : "Unable to upload attachment.",
+                    );
+                  } finally {
+                    setUploading(false);
+                    event.currentTarget.value = "";
+                  }
+                }}
+              />
+            </label>
+            {attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-3 text-sm"
+              >
+                <span className="break-all">
+                  {attachment.fileName}{" "}
+                  <span className="text-xs text-stone-500">
+                    ({Math.ceil(attachment.size / 1024)} KB)
+                  </span>
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const result = await api<{ downloadUrl: string }>(
+                        `/groups/${group.id}/attachments/${attachment.id}/download`,
+                      );
+                      window.open(
+                        result.downloadUrl,
+                        "_blank",
+                        "noopener,noreferrer",
+                      );
+                    } catch (e) {
+                      setError(
+                        e instanceof Error
+                          ? e.message
+                          : "Unable to download attachment.",
+                      );
+                    }
+                  }}
+                >
+                  Download
+                </Button>
+              </div>
+            ))}
+          </section>
           <div className="flex flex-wrap gap-2">
             {[detail.refundOf, detail.corrects, detail.reverses]
               .filter((id): id is string => Boolean(id))
