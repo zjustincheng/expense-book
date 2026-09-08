@@ -133,6 +133,32 @@ export const splitTemplates = pgTable(
     ),
   ],
 );
+export const recurringTransactions = pgTable(
+  "recurring_transactions",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    name: text().notNull(),
+    input: jsonb().$type<EntryInput>().notNull(),
+    frequency: text().notNull(),
+    nextRun: date().notNull(),
+    active: integer().notNull().default(1),
+    createdBy: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("recurring_group_id").on(t.groupId, t.id),
+    index("recurring_group_next_run").on(t.groupId, t.active, t.nextRun),
+    check(
+      "recurring_frequency",
+      sql`${t.frequency} in ('weekly','monthly','quarterly','yearly')`,
+    ),
+    check("recurring_active", sql`${t.active} in (0, 1)`),
+  ],
+);
 // Append-only journal. The input snapshot preserves the split rule and expression.
 export const entries = pgTable(
   "entries",

@@ -13,6 +13,7 @@ import { json } from "../lib/json.js";
 import { fail } from "../lib/errors.js";
 import { authorize as checkAccess } from "../services/access.js";
 import { registerFinancialRoutes } from "./financial.js";
+import { registerRecurringRoutes } from "./recurring.js";
 
 const groupParams = z.object({ groupId: z.string().uuid() });
 const createGroupInput = z.object({
@@ -232,4 +233,5 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
     });
   });
   registerFinancialRoutes(app, db);
+  registerRecurringRoutes(app, db);
 }
