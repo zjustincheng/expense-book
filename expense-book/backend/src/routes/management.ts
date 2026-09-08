@@ -89,7 +89,27 @@ export function registerManagementRoutes(
         .where(eq(categories.groupId, groupId))
         .orderBy(categories.name),
     ]);
-    return { projects: projectRows, categories: categoryRows };
+    const [group] = await db
+      .select({ defaultSplitMethod: groups.defaultSplitMethod })
+      .from(groups)
+      .where(eq(groups.id, groupId));
+    return {
+      projects: projectRows,
+      categories: categoryRows,
+      defaultSplitMethod: group!.defaultSplitMethod,
+    };
+  });
+  app.post("/groups/:groupId/default-split", async (request) => {
+    const { groupId } = groupParams.parse(request.params);
+    await requireAdmin(db, groupId, request.subject);
+    const input = z
+      .object({ method: z.enum(["equal", "weights", "percentages", "exact"]) })
+      .parse(request.body);
+    await db
+      .update(groups)
+      .set({ defaultSplitMethod: input.method })
+      .where(eq(groups.id, groupId));
+    return { defaultSplitMethod: input.method };
   });
   app.post("/groups/:groupId/labels", async (request, reply) => {
     const { groupId } = groupParams.parse(request.params);

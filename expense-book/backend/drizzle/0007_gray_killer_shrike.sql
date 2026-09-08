@@ -1,0 +1,2 @@
+ALTER TABLE "groups" ADD COLUMN "defaultSplitMethod" text DEFAULT 'equal' NOT NULL;--> statement-breakpoint
+ALTER TABLE "groups" ADD CONSTRAINT "default_split_method" CHECK ("groups"."defaultSplitMethod" in ('equal','weights','percentages','exact'));

@@ -14,6 +14,8 @@ Records can be labeled with an optional project/trip and category/tag. Labels ap
 
 Admins can create reusable project and category options from **Members & access**. Archived options remain available for historical records but are removed from new record choices.
 
+Admins can also choose a group default split method (equal, weights, percentages, or exact amounts). New activity forms start with that method, and each record can still override it.
+
 Use **Reports** from a group dashboard to filter posted activity by date range, project, category, record type, or member. The page keeps each financial concept separate and exports the filtered rows to CSV.
 
 ## Structure

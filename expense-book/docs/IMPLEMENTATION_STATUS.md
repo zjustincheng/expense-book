@@ -16,6 +16,7 @@
 - Project/trip and category/tag labels on record inputs, with activity badges and independent dashboard filters. Labels are preserved through drafts, refunds, and corrections.
 - Reports page and filtered API endpoint for date ranges, project, category, record type, and member, with separated totals and filtered CSV export.
 - Group-managed project and category labels with PostgreSQL storage, admin creation/archival, and dropdowns in new record forms. Historical free-text labels remain readable.
+- Group default split method setting for equal, weights, percentages, or exact amounts; new forms use it while preserving per-record overrides.
 
 ## Verified at this stopping point
 
@@ -43,7 +44,7 @@ The online npm audit reports four moderate findings in the development-only `dri
 
 ## Remaining product work
 
-1. Default split rules and further split controls. The API and website support managed labels, equal, percentage, weight, and exact splits plus multiple cash participants.
+1. Saved member-specific split templates and further split controls. The API and website support managed labels, group default methods, equal, percentage, weight, and exact splits plus multiple cash participants.
 2. Date-scoped reports, complete pagination, member statements with contributing-record drill-down, and fuller exports. Current dashboard totals include all posted records, activity shows the latest 100 entries, and exports cover cumulative member balances.
 3. Attachment metadata, authorized S3 uploads/downloads, and content validation. Terraform provisions storage only; the application does not yet accept attachments.
 4. Live Cognito and SES verification, refresh-token rotation, provider logout/revocation, and operational session handling. Signed JWT and mocked userInfo tests pass; these do not replace a live integration check.
