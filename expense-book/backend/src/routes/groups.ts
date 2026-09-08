@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, exists, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Database } from "../db/client.js";
@@ -19,6 +19,25 @@ const createGroupInput = z.object({
   name: z.string().trim().min(1).max(100),
   currency: z.enum(["USD", "EUR", "GBP", "CAD", "AUD"]),
   members: z.array(z.string().trim().min(1).max(100)).min(2).max(100),
+});
+const reportQuery = z.object({
+  from: z.iso.date().optional(),
+  to: z.iso.date().optional(),
+  project: z.string().trim().max(80).optional(),
+  category: z.string().trim().max(80).optional(),
+  kind: z
+    .enum([
+      "income",
+      "expense",
+      "obligation",
+      "transfer",
+      "settlement",
+      "adjustment",
+      "refund",
+      "reversal",
+    ])
+    .optional(),
+  memberId: z.string().uuid().optional(),
 });
 export function registerGroupRoutes(app: FastifyInstance, db: Database) {
   app.get("/groups", async (request) =>
@@ -120,6 +139,50 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
             ),
           },
           suggestions: suggestSettlements(balances),
+        });
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+  });
+  app.get("/groups/:groupId/reports", async (request) => {
+    const { groupId } = groupParams.parse(request.params);
+    await checkAccess(db, groupId, request.subject);
+    const query = reportQuery.parse(request.query);
+    if (query.from && query.to && query.from > query.to)
+      fail("Report start date must be before its end date.", 400);
+    const conditions = [eq(entries.groupId, groupId)];
+    if (query.from) conditions.push(sql`${entries.date} >= ${query.from}`);
+    if (query.to) conditions.push(sql`${entries.date} <= ${query.to}`);
+    if (query.kind) conditions.push(eq(entries.kind, query.kind));
+    if (query.project)
+      conditions.push(
+        sql`${entries.input}->>'project' ilike ${`%${query.project}%`}`,
+      );
+    if (query.category)
+      conditions.push(
+        sql`${entries.input}->>'category' ilike ${`%${query.category}%`}`,
+      );
+    if (query.memberId)
+      conditions.push(
+        exists(
+          sql`select 1 from entry_effects report_effect where report_effect."groupId" = ${groupId} and report_effect."entryId" = ${entries.id} and report_effect."memberId" = ${query.memberId}`,
+        ),
+      );
+    return db.transaction(
+      async (tx) => {
+        const rows = await tx
+          .select()
+          .from(entries)
+          .where(and(...conditions))
+          .orderBy(desc(entries.date), desc(entries.createdAt))
+          .limit(1000);
+        const totals = new Map<string, bigint>();
+        for (const row of rows)
+          totals.set(row.kind, (totals.get(row.kind) ?? 0n) + row.amount);
+        return json({
+          records: rows,
+          totals: Object.fromEntries(totals),
+          count: rows.length,
         });
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },

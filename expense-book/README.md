@@ -12,6 +12,8 @@ Admins can now add, rename, archive, and restore members; link their own account
 
 Records can be labeled with an optional project/trip and category/tag. Labels appear on activity and can be searched independently, while the original values remain part of each immutable input snapshot.
 
+Use **Reports** from a group dashboard to filter posted activity by date range, project, category, record type, or member. The page keeps each financial concept separate and exports the filtered rows to CSV.
+
 ## Structure
 
 - `frontend/`: Next.js website, UI components, server-side authentication callback and API proxy.
