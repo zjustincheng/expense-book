@@ -1,0 +1,79 @@
+export type Group = {
+  id: string;
+  name: string;
+  currency: string;
+  role: string;
+};
+export type Member = {
+  id: string;
+  name: string;
+  outstanding: string;
+  allocatedIncome: string;
+  allocatedExpense: string;
+  activityCash: string;
+  transferCash: string;
+  settlementCash: string;
+  obligation: string;
+  correction: string;
+};
+export type Entry = {
+  id: string;
+  kind: string;
+  description: string;
+  date: string;
+  amount: string;
+  reverses: string | null;
+  actor: string;
+};
+export type GroupDetail = Group & {
+  members: Member[];
+  entries: Entry[];
+  totals: { income: string; expenses: string; unsettled: string };
+  suggestions: { fromMemberId: string; toMemberId: string; amount: string }[];
+};
+export type Preview = {
+  amount: string;
+  effects: {
+    memberId: string;
+    outstanding: string;
+    activityCash: string;
+    allocatedIncome: string;
+    allocatedExpense: string;
+  }[];
+};
+export async function api<T>(
+  path: string,
+  body?: unknown,
+  key?: string,
+): Promise<T> {
+  const response = await fetch(`/api${path}`, {
+    method: body === undefined ? "GET" : "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(key ? { "idempotency-key": key } : {}),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error ?? "Request failed.");
+  return data as T;
+}
+export function money(value: string | bigint, currency: string) {
+  // Keep cents exact even when cumulative balances exceed safe Number precision.
+  const amount = BigInt(value),
+    absolute = amount < 0n ? -amount : amount;
+  const whole = new Intl.NumberFormat("en-US", { useGrouping: true }).format(
+    absolute / 100n,
+  );
+  return `${amount < 0n ? "−" : ""}${currency} ${whole}.${(absolute % 100n).toString().padStart(2, "0")}`;
+}
+export function minorUnits(value: string): string {
+  if (!/^\d+(\.\d{1,2})?$/.test(value))
+    throw new Error("Enter a positive amount with up to two decimal places.");
+  const [whole = "0", decimal = ""] = value.split(".");
+  return (BigInt(whole) * 100n + BigInt(decimal.padEnd(2, "0"))).toString();
+}
+export function today() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
