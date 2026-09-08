@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, lte } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Database } from "../db/client.js";
@@ -80,4 +80,50 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
       return json(row);
     },
   );
+  app.post(
+    "/groups/:groupId/recurring/:recurringId/toggle",
+    async (request) => {
+      const { groupId, recurringId } = params
+        .extend({ recurringId: z.string().uuid() })
+        .parse(request.params);
+      await authorize(db, groupId, request.subject, true);
+      const { active } = z.object({ active: z.boolean() }).parse(request.body);
+      const [row] = await db
+        .update(recurringTransactions)
+        .set({ active: active ? 1 : 0, updatedAt: new Date() })
+        .where(
+          and(
+            eq(recurringTransactions.groupId, groupId),
+            eq(recurringTransactions.id, recurringId),
+          ),
+        )
+        .returning();
+      if (!row) fail("Recurring transaction not found.", 404);
+      return json(row);
+    },
+  );
+  app.get("/groups/:groupId/notifications", async (request) => {
+    const { groupId } = params.parse(request.params);
+    await authorize(db, groupId, request.subject);
+    const cutoff = new Date();
+    cutoff.setUTCDate(cutoff.getUTCDate() + 30);
+    const due = await db
+      .select({
+        id: recurringTransactions.id,
+        name: recurringTransactions.name,
+        nextRun: recurringTransactions.nextRun,
+      })
+      .from(recurringTransactions)
+      .where(
+        and(
+          eq(recurringTransactions.groupId, groupId),
+          eq(recurringTransactions.active, 1),
+          lte(recurringTransactions.nextRun, cutoff.toISOString().slice(0, 10)),
+        ),
+      )
+      .orderBy(asc(recurringTransactions.nextRun));
+    return {
+      notifications: due.map((row) => ({ type: "recurring_due", ...row })),
+    };
+  });
 }
