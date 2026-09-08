@@ -8,6 +8,8 @@ The first working slice supports creating groups at zero, recording income/expen
 
 Cognito authorization-code sign-in with PKCE and access-token verification is implemented but has not been tested against a live AWS user pool. The historical files remain examples only and are not imported.
 
+Admins can now add, rename, archive, and restore members; link their own account; invite people to existing members; and manage admin/editor/viewer access. Invitations expire after seven days and require the invited, verified email to accept. Removing access preserves financial history, and a group must retain at least one admin.
+
 ## Structure
 
 - `frontend/`: Next.js website, UI components, server-side authentication callback and API proxy.
@@ -33,6 +35,8 @@ Open `http://localhost:3000`. The API listens on `127.0.0.1:4000`. The example b
 
 No demo transactions are inserted. Create a group with two or more members, then use **Add record → Preview balance changes → Confirm and post**.
 
+Open **Members & access** to manage a group. Local development uses `DEV_USER_EMAIL=developer@example.test`; invite that address to try account linking locally. For multiple real users, configure Cognito. Invitation links work without email delivery; optional Amazon SES setup is described in the infrastructure guide.
+
 ## Verification
 
 ```sh
@@ -46,7 +50,7 @@ npm run test:e2e
 
 Backend integration tests use an isolated in-memory PostgreSQL engine (PGlite) by default. CI sets `TEST_DATABASE_URL` to a disposable PostgreSQL 17 database. Never point this variable at an existing database: tests apply schema migrations directly and create test records.
 
-Browser tests start their own ephemeral backend and the built frontend. Install a Playwright browser with `npx playwright install chromium`, or use installed Chrome with `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`. Run the production build first. Tests use ports 3100 and 4001.
+Browser tests start their own ephemeral backend and the built frontend. Install a Playwright browser with `npx playwright install chromium`, or use installed Chrome with `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`. Run the production build first. Tests use ports 3100 and 4002, separate from the local preview.
 
 The build uses Next.js's supported webpack option because the local sandbox blocks Turbopack worker sockets. Backend tests and builds do not require AWS credentials.
 
@@ -58,4 +62,4 @@ The journal is append-only, records the actor and original input, and uses datab
 
 ## Before a complete MVP or deployment
 
-See [the implementation handoff](docs/IMPLEMENTATION_STATUS.md) for verified scope, limitations, and prioritized next steps. No AWS resources have been provisioned. This directory was not a Git repository when implementation began; changes have not been committed.
+See [the implementation handoff](docs/IMPLEMENTATION_STATUS.md) for verified scope, limitations, and prioritized next steps. No AWS resources have been provisioned.

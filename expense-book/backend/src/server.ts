@@ -1,13 +1,16 @@
 import { createApp } from "./app.js";
 import { createAuthenticator } from "./auth.js";
 import { connectDatabase } from "./db/client.js";
+import { createInvitationDelivery } from "./services/invitation-delivery.js";
 if (!process.env.DATABASE_URL)
   throw new Error(
     "DATABASE_URL is required. Copy backend/.env.example to backend/.env for local development.",
   );
 const authenticate = createAuthenticator(process.env);
 const { db, pool } = connectDatabase(process.env.DATABASE_URL);
-const app = await createApp(db, authenticate);
+const app = await createApp(db, authenticate, {
+  invitations: createInvitationDelivery(process.env),
+});
 app.addHook("onClose", async () => {
   await pool.end();
 });

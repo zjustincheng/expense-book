@@ -11,6 +11,7 @@ import { entryInput, postEntry } from "../domain/ledger.js";
 import { fail, validateDomain } from "../lib/errors.js";
 import { requestHash } from "../lib/json.js";
 import { lockGroup } from "./access.js";
+import { eligibleMemberIds } from "./participants.js";
 
 const version = z.number().int().positive().max(2_147_483_646);
 export const draftCommand = z.discriminatedUnion("action", [
@@ -50,13 +51,13 @@ export async function changeDraft(
     }
     if ("input" in command) {
       const groupMembers = await tx
-        .select({ id: members.id })
+        .select({ id: members.id, archivedAt: members.archivedAt })
         .from(members)
         .where(eq(members.groupId, groupId));
       validateDomain(() =>
         postEntry(
           command.input,
-          groupMembers.map((member) => member.id),
+          eligibleMemberIds(command.input.kind, groupMembers),
         ),
       );
     }

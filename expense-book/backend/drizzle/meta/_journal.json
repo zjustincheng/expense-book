@@ -29,6 +29,20 @@
       "when": 1788831921265,
       "tag": "0003_lifecycle_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788885387810,
+      "tag": "0004_solid_the_executioner",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788885477647,
+      "tag": "0005_management_audit",
+      "breakpoints": true
     }
   ]
 }

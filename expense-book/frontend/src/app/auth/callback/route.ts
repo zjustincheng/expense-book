@@ -8,8 +8,10 @@ export async function GET(request: NextRequest) {
   const state = request.nextUrl.searchParams.get("state");
   const verifier = jar.get("oauth_verifier")?.value;
   const expected = jar.get("oauth_state")?.value;
+  const destination = jar.get("oauth_return_to")?.value ?? "/";
   jar.delete("oauth_state");
   jar.delete("oauth_verifier");
+  jar.delete("oauth_return_to");
   if (!code || !state || !expected || state !== expected || !verifier)
     return NextResponse.json(
       { error: "Sign-in expired. Please try again." },
@@ -46,5 +48,11 @@ export async function GET(request: NextRequest) {
     ...cookieOptions,
     maxAge: Math.min(tokens.expires_in, 3600),
   });
-  return NextResponse.redirect(new URL("/", config.appUrl));
+  const safeDestination =
+    /^\/(invitations\/[0-9a-f-]{36}|groups\/[0-9a-f-]{36}\/settings)$/.test(
+      destination,
+    )
+      ? destination
+      : "/";
+  return NextResponse.redirect(new URL(safeDestination, config.appUrl));
 }

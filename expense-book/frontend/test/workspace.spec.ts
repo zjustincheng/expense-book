@@ -64,4 +64,51 @@ test("creates a zero-balance group, previews income, and records a partial settl
     ),
   ).toBe(true);
   expect(errors).toEqual([]);
+  await page
+    .getByRole("link", { name: "Members & access", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Members & access" }),
+  ).toBeVisible();
+  await page.getByLabel("New member", { exact: true }).fill("Sam");
+  await page.getByRole("button", { name: "Add member", exact: true }).click();
+  await expect(page.getByLabel("Name for Sam")).toBeVisible();
+  await page.getByLabel("Name for Sam").fill("Samantha");
+  await page
+    .getByLabel("Name for Sam")
+    .locator("..")
+    .locator("..")
+    .getByRole("button", { name: "Save name" })
+    .click();
+  await expect(page.getByLabel("Name for Samantha")).toBeVisible();
+  await page
+    .getByLabel("Name for Samantha")
+    .locator("..")
+    .locator("..")
+    .getByRole("button", { name: "Archive member" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Restore member" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Restore member" }).click();
+  await page
+    .getByRole("combobox", { name: "Link invitation to member" })
+    .selectOption({ label: "Samantha" });
+  await page.getByLabel("Email address").fill("developer@example.test");
+  await page.getByRole("button", { name: "Create invitation link" }).click();
+  const invitationLink = page.getByLabel("Invitation link", { exact: true });
+  await expect(invitationLink).toBeVisible();
+  await page.goto(await invitationLink.inputValue());
+  await expect(
+    page.getByRole("button", { name: "Accept invitation" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Accept invitation" }).click();
+  await expect(
+    page.getByRole("heading", { name: "You’re part of the group." }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Open group" }).click();
+  await expect(
+    page.getByText("Shared event income", { exact: true }),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
 });

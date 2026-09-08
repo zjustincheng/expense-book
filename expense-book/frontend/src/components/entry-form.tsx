@@ -38,6 +38,11 @@ export function EntryForm({
     previewId: string;
   } | null>(null);
   const activity = kind === "income" || kind === "expense";
+  const availableMembers = ["transfer", "settlement", "adjustment"].includes(
+    kind,
+  )
+    ? group.members
+    : group.members.filter((member) => !member.archivedAt);
   const names = new Map(group.members.map((m) => [m.id, m.name]));
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -170,7 +175,7 @@ export function EntryForm({
               <label>
                 {kind === "income" ? "Received by" : "Paid by"}
                 <select name="cash">
-                  {group.members.map((m) => (
+                  {availableMembers.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
                     </option>
@@ -183,7 +188,7 @@ export function EntryForm({
                   ? "Member who should pay"
                   : "Sent by"}
                 <select name="from">
-                  {group.members.map((m) => (
+                  {availableMembers.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
                     </option>
@@ -198,7 +203,7 @@ export function EntryForm({
                 Shared equally with
               </legend>
               <div className="flex flex-wrap gap-3">
-                {group.members.map((m) => (
+                {availableMembers.map((m) => (
                   <label
                     key={m.id}
                     className="flex items-center gap-2 rounded-lg border border-stone-200 px-3 py-2"
@@ -220,8 +225,8 @@ export function EntryForm({
               {kind === "obligation" || kind === "adjustment"
                 ? "Member who should receive"
                 : "Received by"}
-              <select name="to" defaultValue={group.members[1]?.id}>
-                {group.members.map((m) => (
+              <select name="to" defaultValue={availableMembers[1]?.id}>
+                {availableMembers.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
                   </option>

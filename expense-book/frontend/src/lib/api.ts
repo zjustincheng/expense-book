@@ -8,6 +8,8 @@ export type Member = {
   id: string;
   name: string;
   outstanding: string;
+  archivedAt: string | null;
+  linkedSubject: string | null;
   allocatedIncome: string;
   allocatedExpense: string;
   activityCash: string;
@@ -57,8 +59,17 @@ export async function api<T>(
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error ?? "Request failed.");
+  if (!response.ok)
+    throw new ApiError(data.error ?? "Request failed.", response.status);
   return data as T;
+}
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+  }
 }
 export function money(value: string | bigint, currency: string) {
   // Keep cents exact even when cumulative balances exceed safe Number precision.

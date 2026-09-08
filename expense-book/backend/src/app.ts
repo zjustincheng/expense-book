@@ -3,12 +3,14 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { z, ZodError } from "zod";
 import type { Database } from "./db/client.js";
-import type { Authenticate } from "./auth.js";
+import type { Authenticate, Identity } from "./auth.js";
 import { registerGroupRoutes } from "./routes/groups.js";
+import { registerManagementRoutes } from "./routes/management.js";
+import type { InvitationDelivery } from "./services/invitation-delivery.js";
 export async function createApp(
   db: Database,
   authenticate: Authenticate,
-  options: { logging?: boolean } = {},
+  options: { logging?: boolean; invitations?: InvitationDelivery } = {},
 ) {
   const app = Fastify({
     bodyLimit: 64 * 1024,
@@ -52,9 +54,11 @@ export async function createApp(
   app.register(
     async (api) => {
       api.addHook("onRequest", async (request) => {
-        request.subject = await authenticate(request);
+        request.identity = await authenticate(request);
+        request.subject = request.identity.subject;
       });
       registerGroupRoutes(api, db);
+      registerManagementRoutes(api, db, options.invitations);
     },
     { prefix: "/api" },
   );
@@ -63,5 +67,6 @@ export async function createApp(
 declare module "fastify" {
   interface FastifyRequest {
     subject: string;
+    identity: Identity;
   }
 }

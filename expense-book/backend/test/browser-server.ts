@@ -14,7 +14,10 @@ for (const file of (await readdir(migrations))
 }
 const app = await createApp(
   drizzle(client, { schema }) as unknown as Database,
-  async () => "browser-test-user",
+  async () => ({
+    subject: "browser-test-user",
+    verifiedEmail: async () => "developer@example.test",
+  }),
   { logging: false },
 );
 app.addHook("onClose", async () => client.close());
@@ -22,4 +25,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const)
   process.once(signal, () => {
     void app.close();
   });
-await app.listen({ host: "127.0.0.1", port: 4001 });
+await app.listen({
+  host: "127.0.0.1",
+  port: Number(process.env.TEST_API_PORT ?? 4001),
+});

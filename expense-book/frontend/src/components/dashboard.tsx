@@ -56,7 +56,14 @@ export function Dashboard({
       .then((result) => {
         if (active) {
           setGroups(result);
-          setSelected(result[0]?.id ?? "");
+          const requested = new URLSearchParams(window.location.search).get(
+            "group",
+          );
+          setSelected(
+            result.find((item) => item.id === requested)?.id ??
+              result[0]?.id ??
+              "",
+          );
         }
       })
       .catch((e: Error) => {
@@ -267,6 +274,11 @@ export function Dashboard({
                 <Download size={16} />
                 Export
               </Button>
+              {group.role === "admin" && (
+                <Button asChild variant="outline">
+                  <a href={`/groups/${group.id}/settings`}>Members & access</a>
+                </Button>
+              )}
               {group.role !== "viewer" && (
                 <Button onClick={() => setAdding(!adding)}>
                   <Plus size={16} />
@@ -554,6 +566,11 @@ export function Dashboard({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
                           {member.name}
+                          {member.archivedAt && (
+                            <span className="ml-2 text-xs font-normal text-stone-500">
+                              Archived
+                            </span>
+                          )}
                         </p>
                         <button
                           className="mt-1 flex items-center gap-1 text-xs text-stone-500 underline-offset-2 hover:underline"

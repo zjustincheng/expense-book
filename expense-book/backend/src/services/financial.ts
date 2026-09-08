@@ -25,6 +25,7 @@ import {
 import { fail, validateDomain } from "../lib/errors.js";
 import { requestHash } from "../lib/json.js";
 import { lockGroup, type Transaction } from "./access.js";
+import { eligibleMemberIds } from "./participants.js";
 
 type Entry = typeof entries.$inferSelect;
 type PlannedEntry = PostedEntry &
@@ -71,7 +72,7 @@ async function buildPlan(
   command: FinancialCommand,
 ): Promise<Plan> {
   const groupMembers = await tx
-    .select({ id: members.id })
+    .select({ id: members.id, archivedAt: members.archivedAt })
     .from(members)
     .where(eq(members.groupId, groupId));
   const ids = groupMembers.map((member) => member.id);
@@ -80,7 +81,9 @@ async function buildPlan(
   ): PlannedEntry => ({
     ...input,
     input,
-    ...validateDomain(() => postEntry(input, ids)),
+    ...validateDomain(() =>
+      postEntry(input, eligibleMemberIds(input.kind, groupMembers)),
+    ),
   });
   if (command.action === "post") return { records: [ordinary(command.input)] };
   if (command.action === "postDraft") {
