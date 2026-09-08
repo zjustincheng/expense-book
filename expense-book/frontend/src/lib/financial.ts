@@ -21,6 +21,8 @@ export type EntryInput = {
   description: string;
   date: string;
   expression: string;
+  project?: string;
+  category?: string;
 } & (
   | { kind: "income" | "expense"; cash: CashRow[]; split: Split }
   | {

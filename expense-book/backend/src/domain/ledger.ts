@@ -25,6 +25,8 @@ const common = {
   description: z.string().trim().min(1).max(300),
   date: z.iso.date(),
   expression: z.string().min(1).max(256),
+  project: z.string().trim().max(80).optional(),
+  category: z.string().trim().max(80).optional(),
 };
 export const entryInput = z.discriminatedUnion("kind", [
   z.object({
