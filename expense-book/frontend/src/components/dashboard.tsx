@@ -15,10 +15,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntryForm } from "@/components/entry-form";
+import { DraftList } from "@/components/draft-list";
+import { RecordDetails } from "@/components/record-actions";
 import {
   api,
   money,
-  today,
   type Group,
   type GroupDetail,
   type Member,
@@ -78,6 +79,9 @@ export function Dashboard({
   }, [canLoad]);
   useEffect(() => {
     if (!selected) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("group", selected);
+    window.history.replaceState(null, "", url);
     let active = true;
     setLoading(true);
     setGroup(null);
@@ -119,23 +123,6 @@ export function Dashboard({
       setError(e instanceof Error ? e.message : "Unable to create group.");
     } finally {
       setLoading(false);
-    }
-  }
-  async function reverse(id: string, reason: string) {
-    try {
-      const command = { action: "reverse", entryId: id, reason, date: today() };
-      const preview = await api<{ previewId: string }>(
-        `/groups/${selected}/preview`,
-        command,
-      );
-      await api(
-        `/groups/${selected}/entries`,
-        { command, previewId: preview.previewId },
-        crypto.randomUUID(),
-      );
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to reverse entry.");
     }
   }
   function exportCsv() {
@@ -450,6 +437,7 @@ export function Dashboard({
                 />
               </div>
             )}
+            <DraftList key={group.id} group={group} onSaved={refresh} />
             <div className="grid items-start gap-6 xl:grid-cols-[1.5fr_1fr]">
               <section
                 id="activity"
@@ -505,37 +493,12 @@ export function Dashboard({
                             <p className="mt-2 break-all">
                               Recorded by {entry.actor}
                             </p>
-                            <EntryDetails
-                              groupId={group.id}
+                            <RecordDetails
+                              key={`${entry.id}-${group.entries[0]?.id}`}
+                              group={group}
                               entryId={entry.id}
-                              members={group.members}
-                              currency={group.currency}
+                              onSaved={refresh}
                             />
-                            {group.role !== "viewer" &&
-                              entry.kind !== "reversal" && (
-                                <form
-                                  className="mt-3 flex gap-2"
-                                  onSubmit={(e) => {
-                                    e.preventDefault();
-                                    const form = e.currentTarget;
-                                    const reason = String(
-                                      new FormData(form).get("reason"),
-                                    );
-                                    void reverse(entry.id, reason);
-                                  }}
-                                >
-                                  <input
-                                    aria-label="Reason for reversal"
-                                    name="reason"
-                                    placeholder="Reason for reversal"
-                                    required
-                                    maxLength={300}
-                                  />
-                                  <Button size="sm" variant="outline">
-                                    Reverse
-                                  </Button>
-                                </form>
-                              )}
                           </details>
                         </li>
                       ))}
@@ -685,48 +648,6 @@ export function Dashboard({
           Expense Book · Shared net activity, explained.
         </footer>
       </main>
-    </div>
-  );
-}
-function EntryDetails({
-  groupId,
-  entryId,
-  members,
-  currency,
-}: {
-  groupId: string;
-  entryId: string;
-  members: Member[];
-  currency: string;
-}) {
-  const [detail, setDetail] = useState<{
-    effects: { memberId: string; outstanding: string }[];
-  } | null>(null);
-  const [error, setError] = useState("");
-  return (
-    <div className="mt-2">
-      {!detail ? (
-        <button
-          className="underline"
-          onClick={() => {
-            api<{ effects: { memberId: string; outstanding: string }[] }>(
-              `/groups/${groupId}/entries/${entryId}`,
-            )
-              .then(setDetail)
-              .catch((e: Error) => setError(e.message));
-          }}
-        >
-          Show member balance changes
-        </button>
-      ) : (
-        detail.effects.map((effect) => (
-          <p key={effect.memberId} className="py-1">
-            {members.find((m) => m.id === effect.memberId)?.name}:{" "}
-            {money(effect.outstanding, currency)}
-          </p>
-        ))
-      )}
-      {error && <p role="alert">{error}</p>}
     </div>
   );
 }

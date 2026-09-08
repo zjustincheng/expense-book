@@ -18,7 +18,7 @@ const app = await createApp(
     subject: "browser-test-user",
     verifiedEmail: async () => "developer@example.test",
   }),
-  { logging: false },
+  { logging: false, rateLimit: { max: 1000, timeWindow: "1 minute" } },
 );
 app.addHook("onClose", async () => client.close());
 for (const signal of ["SIGINT", "SIGTERM"] as const)

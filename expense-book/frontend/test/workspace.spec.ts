@@ -5,7 +5,9 @@ test("creates a zero-balance group, previews income, and records a partial settl
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "Create your first group" }).click();
+  await page
+    .getByRole("button", { name: "Create a group", exact: true })
+    .click();
   await page.getByLabel("Group name").fill("Weekend crew");
   await page
     .getByLabel("Member names, separated by commas")
