@@ -28,6 +28,8 @@ export const groups = pgTable(
     ledgerVersion: bigint({ mode: "bigint" })
       .notNull()
       .default(sql`0`),
+    openingBalance: bigint({ mode: "bigint" }).notNull().default(sql`0`),
+    openingBalanceDate: date(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

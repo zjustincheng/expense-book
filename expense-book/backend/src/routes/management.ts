@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Database } from "../db/client.js";
@@ -74,6 +74,27 @@ export function registerManagementRoutes(
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
+  });
+  app.post("/groups/:groupId/opening-balance", async (request) => {
+    const { groupId } = groupParams.parse(request.params);
+    await requireAdmin(db, groupId, request.subject);
+    const input = z
+      .object({ amount: z.string().regex(/^-?\d{1,15}$/), date: z.iso.date() })
+      .parse(request.body);
+    const [group] = await db
+      .update(groups)
+      .set({
+        openingBalance: BigInt(input.amount),
+        openingBalanceDate: input.date,
+        managementVersion: sql`${groups.managementVersion} + 1`,
+      })
+      .where(eq(groups.id, groupId))
+      .returning({
+        openingBalance: groups.openingBalance,
+        openingBalanceDate: groups.openingBalanceDate,
+      });
+    if (!group) fail("Group not found.", 404);
+    return json(group);
   });
   app.get("/groups/:groupId/labels", async (request) => {
     const { groupId } = groupParams.parse(request.params);
