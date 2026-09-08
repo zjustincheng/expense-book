@@ -50,6 +50,9 @@ resource "aws_ecs_service" "backend" {
     security_groups  = [var.ecs_security_group_id]
     assign_public_ip = false
   }
+  service_registries {
+    registry_arn = aws_service_discovery_service.backend.arn
+  }
   deployment_circuit_breaker {
     enable   = true
     rollback = true
@@ -65,7 +68,7 @@ resource "aws_ecs_task_definition" "frontend" {
   container_definitions = jsonencode([{
     name             = "frontend", image = var.frontend_image, essential = true,
     portMappings     = [{ containerPort = 3000, protocol = "tcp" }]
-    environment      = [{ name = "NODE_ENV", value = "production" }, { name = "API_INTERNAL_URL", value = "http://${aws_ecs_service.backend.name}:4000" }, { name = "APP_URL", value = var.app_url }]
+    environment      = [{ name = "NODE_ENV", value = "production" }, { name = "API_INTERNAL_URL", value = "http://backend.${aws_service_discovery_private_dns_namespace.application.name}:4000" }, { name = "APP_URL", value = var.app_url }]
     logConfiguration = { logDriver = "awslogs", options = { awslogs-group = aws_cloudwatch_log_group.ecs.name, awslogs-region = var.aws_region, awslogs-stream-prefix = "frontend" } }
   }])
 }

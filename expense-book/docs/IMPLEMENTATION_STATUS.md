@@ -22,7 +22,7 @@
 - Signed S3 upload and download URL routes with MIME/size limits, tenant authorization, and five-minute URL expiry. Live AWS credentials and browser upload wiring remain deployment setup work.
 - Terraform IAM foundation for separate ECS execution and backend runtime roles, including scoped private-attachment access and runtime secret reads.
 - Terraform ECS task definitions/services now include a public-subnet HTTPS Application Load Balancer, ACM certificate input, frontend health checks, and load-balancer-to-task security-group ingress. CloudFront, Route 53, and backend service discovery remain deployment-layer work.
-- Terraform now includes a CloudFront distribution with disabled caching, HTTPS redirect, and a Route 53 alias for the application hostname. CloudFront requires a separate us-east-1 ACM certificate; backend service discovery remains deployment-layer work.
+- Terraform now includes a CloudFront distribution with disabled caching, HTTPS redirect, a Route 53 alias for the application hostname, and private Cloud Map registration for backend ECS tasks. CloudFront requires a separate us-east-1 ACM certificate.
 
 ## Verified at this stopping point
 
@@ -55,7 +55,7 @@ The online npm audit reports four moderate findings in the development-only `dri
 3. Attachment metadata, authorized S3 uploads/downloads, and content validation. Terraform provisions storage only; the application does not yet accept attachments.
 4. Live Cognito and SES verification, refresh-token rotation, provider logout/revocation, and operational session handling. Signed JWT and mocked userInfo tests pass; these do not replace a live integration check.
 5. Extract the dashboard and route modules into smaller feature modules as features arrive; keep financial rules in the domain layer. Complete a dedicated accessibility audit and expand browser coverage to real multi-user sessions.
-6. AWS environment layer: VPC/networking, least-privilege database role, backend service discovery, remote Terraform state, deployment OIDC, SES sender provisioning, backup restoration, and monitoring. The checked-in ALB, ECS, CloudFront, and Route 53 layers have not been applied.
+6. AWS environment layer: VPC/networking, least-privilege database role, remote Terraform state, deployment OIDC, SES sender provisioning, backup restoration, and monitoring. The checked-in ALB, ECS, CloudFront, Route 53, and Cloud Map layers have not been applied.
 
 Optional opening balances and full historical import remain later scope. The old source files must not be treated as verified balances or imported automatically.
 
