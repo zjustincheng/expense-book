@@ -7,12 +7,15 @@ import type { Authenticate, Identity } from "./auth.js";
 import { registerGroupRoutes } from "./routes/groups.js";
 import { registerManagementRoutes } from "./routes/management.js";
 import type { InvitationDelivery } from "./services/invitation-delivery.js";
+import type { AttachmentStorage } from "./services/attachments.js";
+import { registerAttachmentRoutes } from "./routes/attachments.js";
 export async function createApp(
   db: Database,
   authenticate: Authenticate,
   options: {
     logging?: boolean;
     invitations?: InvitationDelivery;
+    attachments?: AttachmentStorage;
     rateLimit?: { max: number; timeWindow: string };
   } = {},
 ) {
@@ -66,6 +69,7 @@ export async function createApp(
       });
       registerGroupRoutes(api, db);
       registerManagementRoutes(api, db, options.invitations);
+      registerAttachmentRoutes(api, db, options.attachments);
     },
     { prefix: "/api" },
   );
