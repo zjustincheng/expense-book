@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { minorUnits, today, type GroupDetail } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { api, minorUnits, today, type GroupDetail } from "@/lib/api";
 import {
   decimalAmount,
   entryKinds,
@@ -94,6 +94,15 @@ export function EntryFields({
   const [method, setMethod] = useState<Split["method"]>(
     initialActivity?.split.method ?? "equal",
   );
+  const [labels, setLabels] = useState<{
+    projects: { id: string; name: string; archivedAt: string | null }[];
+    categories: { id: string; name: string; archivedAt: string | null }[];
+  }>({ projects: [], categories: [] });
+  useEffect(() => {
+    api<typeof labels>(`/groups/${group.id}/labels`)
+      .then(setLabels)
+      .catch(() => undefined);
+  }, [group.id]);
   const activity = kind === "income" || kind === "expense";
   const originalIds = new Set(
     initialActivity
@@ -152,21 +161,35 @@ export function EntryFields({
         <div className="grid gap-4 sm:grid-cols-2">
           <label>
             Project or trip
-            <input
-              name="project"
-              maxLength={80}
-              defaultValue={initial?.project}
-              placeholder="Weekend away"
-            />
+            <select name="project" defaultValue={initial?.project ?? ""}>
+              <option value="">No project</option>
+              {labels.projects
+                .filter(
+                  (label) =>
+                    !label.archivedAt || label.name === initial?.project,
+                )
+                .map((label) => (
+                  <option key={label.id} value={label.name}>
+                    {label.name}
+                  </option>
+                ))}
+            </select>
           </label>
           <label>
             Category or tag
-            <input
-              name="category"
-              maxLength={80}
-              defaultValue={initial?.category}
-              placeholder="Food"
-            />
+            <select name="category" defaultValue={initial?.category ?? ""}>
+              <option value="">No category</option>
+              {labels.categories
+                .filter(
+                  (label) =>
+                    !label.archivedAt || label.name === initial?.category,
+                )
+                .map((label) => (
+                  <option key={label.id} value={label.name}>
+                    {label.name}
+                  </option>
+                ))}
+            </select>
           </label>
         </div>
         <label>

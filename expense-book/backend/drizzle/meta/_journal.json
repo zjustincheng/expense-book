@@ -43,6 +43,13 @@
       "when": 1788885477647,
       "tag": "0005_management_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788905310841,
+      "tag": "0006_crazy_whistler",
+      "breakpoints": true
     }
   ]
 }

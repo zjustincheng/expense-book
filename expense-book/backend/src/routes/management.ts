@@ -8,8 +8,11 @@ import {
   invitations,
   managementEvents,
   members,
+  projects,
+  categories,
 } from "../db/schema.js";
 import { json } from "../lib/json.js";
+import { fail } from "../lib/errors.js";
 import {
   manageGroup,
   managementInput,
@@ -18,6 +21,7 @@ import {
   reviewInvitation,
 } from "../services/management.js";
 import type { InvitationDelivery } from "../services/invitation-delivery.js";
+import { authorize } from "../services/access.js";
 
 const groupParams = z.object({ groupId: z.string().uuid() });
 export function registerManagementRoutes(
@@ -70,6 +74,69 @@ export function registerManagementRoutes(
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   });
+  app.get("/groups/:groupId/labels", async (request) => {
+    const { groupId } = groupParams.parse(request.params);
+    await authorize(db, groupId, request.subject);
+    const [projectRows, categoryRows] = await Promise.all([
+      db
+        .select()
+        .from(projects)
+        .where(eq(projects.groupId, groupId))
+        .orderBy(projects.name),
+      db
+        .select()
+        .from(categories)
+        .where(eq(categories.groupId, groupId))
+        .orderBy(categories.name),
+    ]);
+    return { projects: projectRows, categories: categoryRows };
+  });
+  app.post("/groups/:groupId/labels", async (request, reply) => {
+    const { groupId } = groupParams.parse(request.params);
+    await requireAdmin(db, groupId, request.subject);
+    const input = z
+      .object({
+        kind: z.enum(["project", "category"]),
+        name: z.string().trim().min(1).max(80),
+      })
+      .parse(request.body);
+    try {
+      const [created] =
+        input.kind === "project"
+          ? await db
+              .insert(projects)
+              .values({ groupId, name: input.name })
+              .returning()
+          : await db
+              .insert(categories)
+              .values({ groupId, name: input.name })
+              .returning();
+      return reply.code(201).send(created);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("group_name"))
+        fail("A label with this name already exists.", 409);
+      throw error;
+    }
+  });
+  app.post(
+    "/groups/:groupId/labels/:kind/:labelId/archive",
+    async (request) => {
+      const { groupId } = groupParams.parse(request.params);
+      const params = z
+        .object({
+          kind: z.enum(["project", "category"]),
+          labelId: z.string().uuid(),
+        })
+        .parse(request.params);
+      await requireAdmin(db, groupId, request.subject);
+      const table = params.kind === "project" ? projects : categories;
+      await db
+        .update(table)
+        .set({ archivedAt: new Date() })
+        .where(and(eq(table.groupId, groupId), eq(table.id, params.labelId)));
+      return { archived: true };
+    },
+  );
   app.post("/groups/:groupId/settings", async (request) => {
     const { groupId } = groupParams.parse(request.params);
     const input = managementInput.parse(request.body);
