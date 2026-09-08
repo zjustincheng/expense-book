@@ -38,6 +38,7 @@ export function GroupSettings({ groupId }: { groupId: string }) {
   const [labels, setLabels] = useState<{
     projects: { id: string; name: string; archivedAt: string | null }[];
     categories: { id: string; name: string; archivedAt: string | null }[];
+    defaultSplitMethod?: "equal" | "weights" | "percentages" | "exact";
   }>({ projects: [], categories: [] });
   const attempt = useRef<{ body: string; key: string } | null>(null);
   const load = useCallback(
@@ -76,6 +77,26 @@ export function GroupSettings({ groupId }: { groupId: string }) {
       setNotice("Label created.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to create label.");
+    }
+  }
+  async function saveDefaultSplit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const method = String(new FormData(event.currentTarget).get("method"));
+    try {
+      await api(
+        `/groups/${groupId}/default-split`,
+        { method },
+        crypto.randomUUID(),
+      );
+      setLabels({
+        ...labels,
+        defaultSplitMethod: method as typeof labels.defaultSplitMethod,
+      });
+      setNotice("Default split rule saved.");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to save default split rule.",
+      );
     }
   }
   async function change(command: Command) {
@@ -218,6 +239,24 @@ export function GroupSettings({ groupId }: { groupId: string }) {
                 </span>
               ))}
             </div>
+            <form
+              className="mt-5 flex flex-wrap items-end gap-3"
+              onSubmit={saveDefaultSplit}
+            >
+              <label>
+                Default split method
+                <select
+                  name="method"
+                  defaultValue={labels.defaultSplitMethod ?? "equal"}
+                >
+                  <option value="equal">Equal shares</option>
+                  <option value="weights">Weights</option>
+                  <option value="percentages">Percentages</option>
+                  <option value="exact">Exact amounts</option>
+                </select>
+              </label>
+              <Button variant="outline">Save default split</Button>
+            </form>
           </section>
           <section className={panel}>
             <h2 className="text-xl font-semibold">Members</h2>

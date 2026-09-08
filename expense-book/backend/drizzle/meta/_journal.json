@@ -50,6 +50,13 @@
       "when": 1788905310841,
       "tag": "0006_crazy_whistler",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788905492351,
+      "tag": "0007_gray_killer_shrike",
+      "breakpoints": true
     }
   ]
 }

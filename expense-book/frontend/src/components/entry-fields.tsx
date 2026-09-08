@@ -97,10 +97,17 @@ export function EntryFields({
   const [labels, setLabels] = useState<{
     projects: { id: string; name: string; archivedAt: string | null }[];
     categories: { id: string; name: string; archivedAt: string | null }[];
+    defaultSplitMethod?: Split["method"];
   }>({ projects: [], categories: [] });
   useEffect(() => {
     api<typeof labels>(`/groups/${group.id}/labels`)
-      .then(setLabels)
+      .then((result) => {
+        setLabels(result);
+        if (!initialActivity && result.defaultSplitMethod) {
+          setMethod(result.defaultSplitMethod);
+          setAdvanced(result.defaultSplitMethod !== "equal");
+        }
+      })
       .catch(() => undefined);
   }, [group.id]);
   const activity = kind === "income" || kind === "expense";

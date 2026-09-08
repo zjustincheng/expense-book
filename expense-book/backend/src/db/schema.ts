@@ -23,6 +23,7 @@ export const groups = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     name: text().notNull(),
     currency: text().notNull(),
+    defaultSplitMethod: text().notNull().default("equal"),
     managementVersion: integer().notNull().default(0),
     ledgerVersion: bigint({ mode: "bigint" })
       .notNull()
@@ -33,6 +34,10 @@ export const groups = pgTable(
     check(
       "supported_currency",
       sql`${t.currency} in ('USD', 'EUR', 'GBP', 'CAD', 'AUD')`,
+    ),
+    check(
+      "default_split_method",
+      sql`${t.defaultSplitMethod} in ('equal','weights','percentages','exact')`,
     ),
   ],
 );
