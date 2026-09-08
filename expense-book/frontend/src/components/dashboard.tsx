@@ -615,6 +615,12 @@ export function Dashboard({
                           <CircleHelp size={11} />
                           Why this balance?
                         </button>
+                        <a
+                          className="mt-1 block text-xs text-emerald-800 underline"
+                          href={`/groups/${group.id}/statements/${member.id}`}
+                        >
+                          View statement
+                        </a>
                       </div>
                       <div className="text-right">
                         <p

@@ -10,6 +10,7 @@ import {
   members,
   projects,
   categories,
+  splitTemplates,
 } from "../db/schema.js";
 import { json } from "../lib/json.js";
 import { fail } from "../lib/errors.js";
@@ -111,6 +112,56 @@ export function registerManagementRoutes(
       .where(eq(groups.id, groupId));
     return { defaultSplitMethod: input.method };
   });
+  app.get("/groups/:groupId/split-templates", async (request) => {
+    const { groupId } = groupParams.parse(request.params);
+    await authorize(db, groupId, request.subject);
+    return db
+      .select()
+      .from(splitTemplates)
+      .where(eq(splitTemplates.groupId, groupId))
+      .orderBy(splitTemplates.name);
+  });
+  app.post("/groups/:groupId/split-templates", async (request, reply) => {
+    const { groupId } = groupParams.parse(request.params);
+    await requireAdmin(db, groupId, request.subject);
+    const input = z
+      .object({
+        name: z.string().trim().min(1).max(80),
+        method: z.enum(["equal", "weights", "percentages", "exact"]),
+        shares: z.unknown(),
+      })
+      .parse(request.body);
+    const [template] = await db
+      .insert(splitTemplates)
+      .values({
+        groupId,
+        name: input.name,
+        method: input.method,
+        shares: input.shares,
+      })
+      .returning();
+    return reply.code(201).send(template);
+  });
+  app.post(
+    "/groups/:groupId/split-templates/:templateId/archive",
+    async (request) => {
+      const { groupId } = groupParams.parse(request.params);
+      const { templateId } = z
+        .object({ templateId: z.string().uuid() })
+        .parse(request.params);
+      await requireAdmin(db, groupId, request.subject);
+      await db
+        .update(splitTemplates)
+        .set({ archivedAt: new Date() })
+        .where(
+          and(
+            eq(splitTemplates.groupId, groupId),
+            eq(splitTemplates.id, templateId),
+          ),
+        );
+      return { archived: true };
+    },
+  );
   app.post("/groups/:groupId/labels", async (request, reply) => {
     const { groupId } = groupParams.parse(request.params);
     await requireAdmin(db, groupId, request.subject);
