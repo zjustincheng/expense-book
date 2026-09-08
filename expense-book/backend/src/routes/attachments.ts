@@ -82,13 +82,11 @@ export function registerAttachmentRoutes(
           contentType: attachments.contentType,
           size: attachments.size,
         });
-      return reply
-        .code(201)
-        .send({
-          ...created,
-          uploadUrl: await uploadUrl(storage, key, input.contentType),
-          expiresIn: 300,
-        });
+      return reply.code(201).send({
+        ...created,
+        uploadUrl: await uploadUrl(storage, key, input.contentType),
+        expiresIn: 300,
+      });
     },
   );
   app.get(
