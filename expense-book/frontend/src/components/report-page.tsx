@@ -24,6 +24,7 @@ export function ReportPage({ groupId }: { groupId: string }) {
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [report, setReport] = useState<Report | null>(null);
   const [filters, setFilters] = useState({
+    search: "",
     from: "",
     to: "",
     project: "",
@@ -34,6 +35,18 @@ export function ReportPage({ groupId }: { groupId: string }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [savedFilters, setSavedFilters] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      setSavedFilters(JSON.parse(localStorage.getItem(`expense-book:report-filters:${groupId}`) ?? "[]"));
+    } catch { setSavedFilters([]); }
+  }, [groupId]);
+  function saveCurrentFilter() {
+    const value = JSON.stringify(filters);
+    const next = savedFilters.includes(value) ? savedFilters : [...savedFilters, value].slice(-5);
+    setSavedFilters(next);
+    localStorage.setItem(`expense-book:report-filters:${groupId}`, JSON.stringify(next));
+  }
   const load = useCallback(
     async (next = filters) => {
       setLoading(true);
@@ -120,6 +133,14 @@ export function ReportPage({ groupId }: { groupId: string }) {
           void load();
         }}
       >
+        <label className="sm:col-span-2 lg:col-span-3">
+          Search activity
+          <input
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            placeholder="Description, project, or category"
+          />
+        </label>
         <label>
           From
           <input
@@ -193,6 +214,7 @@ export function ReportPage({ groupId }: { groupId: string }) {
             variant="ghost"
             onClick={() => {
               const reset = {
+                search: "",
                 from: "",
                 to: "",
                 project: "",
@@ -206,8 +228,31 @@ export function ReportPage({ groupId }: { groupId: string }) {
           >
             Clear
           </Button>
+          <Button type="button" variant="outline" onClick={saveCurrentFilter}>
+            Save filter
+          </Button>
         </div>
       </form>
+      {savedFilters.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-stone-500">Saved filters:</span>
+          {savedFilters.map((saved, index) => (
+            <Button
+              key={saved}
+              type="button"
+              variant="outline"
+              onClick={() => {
+                const parsed = JSON.parse(saved) as typeof filters;
+                setFilters(parsed);
+                setPage(1);
+                void load(parsed);
+              }}
+            >
+              Filter {index + 1}
+            </Button>
+          ))}
+        </div>
+      )}
       {error && (
         <p
           role="alert"

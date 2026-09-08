@@ -21,6 +21,7 @@ const createGroupInput = z.object({
   members: z.array(z.string().trim().min(1).max(100)).min(2).max(100),
 });
 const reportQuery = z.object({
+  search: z.string().trim().max(120).optional(),
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
   project: z.string().trim().max(80).optional(),
@@ -156,6 +157,12 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
     if (query.from) conditions.push(sql`${entries.date} >= ${query.from}`);
     if (query.to) conditions.push(sql`${entries.date} <= ${query.to}`);
     if (query.kind) conditions.push(eq(entries.kind, query.kind));
+    if (query.search) {
+      const term = `%${query.search}%`;
+      conditions.push(
+        sql`(${entries.description} ilike ${term} or ${entries.input}->>'project' ilike ${term} or ${entries.input}->>'category' ilike ${term})`,
+      );
+    }
     if (query.project)
       conditions.push(
         sql`${entries.input}->>'project' ilike ${`%${query.project}%`}`,
