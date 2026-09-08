@@ -110,6 +110,29 @@ export const categories = pgTable(
     index("categories_group").on(t.groupId, t.archivedAt),
   ],
 );
+export const splitTemplates = pgTable(
+  "split_templates",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    name: text().notNull(),
+    method: text().notNull(),
+    shares: jsonb().$type<unknown>().notNull(),
+    archivedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("split_template_group_id").on(t.groupId, t.id),
+    unique("split_template_group_name").on(t.groupId, t.name),
+    index("split_templates_group").on(t.groupId, t.archivedAt),
+    check(
+      "split_template_method",
+      sql`${t.method} in ('equal','weights','percentages','exact')`,
+    ),
+  ],
+);
 // Append-only journal. The input snapshot preserves the split rule and expression.
 export const entries = pgTable(
   "entries",

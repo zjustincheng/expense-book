@@ -188,5 +188,33 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   });
+  app.get("/groups/:groupId/statements/:memberId", async (request) => {
+    const { groupId, memberId } = groupParams
+      .extend({ memberId: z.string().uuid() })
+      .parse(request.params);
+    await checkAccess(db, groupId, request.subject);
+    const [member] = await db
+      .select()
+      .from(members)
+      .where(and(eq(members.groupId, groupId), eq(members.id, memberId)));
+    if (!member) fail("Member not found.", 404);
+    const rows = await db
+      .select({ entry: entries, effect: effects })
+      .from(effects)
+      .innerJoin(
+        entries,
+        and(
+          eq(entries.groupId, effects.groupId),
+          eq(entries.id, effects.entryId),
+        ),
+      )
+      .where(and(eq(effects.groupId, groupId), eq(effects.memberId, memberId)))
+      .orderBy(desc(entries.date), desc(entries.createdAt))
+      .limit(500);
+    return json({
+      member,
+      records: rows.map((row) => ({ ...row.entry, effect: row.effect })),
+    });
+  });
   registerFinancialRoutes(app, db);
 }

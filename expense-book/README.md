@@ -16,6 +16,8 @@ Admins can create reusable project and category options from **Members & access*
 
 Admins can also choose a group default split method (equal, weights, percentages, or exact amounts). New activity forms start with that method, and each record can still override it.
 
+Member balance cards link to statements listing every contributing record and that member’s exact balance effect. The API also supports reusable named split templates for the next form enhancement.
+
 Use **Reports** from a group dashboard to filter posted activity by date range, project, category, record type, or member. The page keeps each financial concept separate and exports the filtered rows to CSV.
 
 ## Structure
