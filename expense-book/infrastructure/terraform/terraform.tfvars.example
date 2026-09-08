@@ -8,3 +8,6 @@ public_subnet_ids             = ["subnet-public-a", "subnet-public-b"]
 application_security_group_id = "sg-replace"
 ecs_security_group_id         = "sg-ecs-replace"
 certificate_arn               = "arn:aws:acm:us-east-1:123456789012:certificate/replace-me"
+app_domain                    = "app.example.com"
+hosted_zone_id                = "Z00000000000000000000"
+cloudfront_certificate_arn    = "arn:aws:acm:us-east-1:123456789012:certificate/replace-me-cloudfront"

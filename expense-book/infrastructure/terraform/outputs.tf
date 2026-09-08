@@ -12,3 +12,5 @@ output "image_repositories" { value = { for name, repository in aws_ecr_reposito
 output "ecs_execution_role_arn" { value = aws_iam_role.ecs_execution.arn }
 output "backend_runtime_role_arn" { value = aws_iam_role.backend_runtime.arn }
 output "application_load_balancer_dns" { value = aws_lb.application.dns_name }
+output "application_url" { value = "https://${var.app_domain}" }
+output "cloudfront_distribution_domain" { value = aws_cloudfront_distribution.application.domain_name }
