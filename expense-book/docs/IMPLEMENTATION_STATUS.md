@@ -14,6 +14,7 @@
 - Optional SES invitation delivery with copyable links, delivery status, and explicit retry; no live AWS sender configured.
 - Transaction lifecycle UI: save/edit/discard drafts, preview and post drafts, record partial refunds, reverse refunds, and correct posted records with an atomic reversal/replacement preview. Detailed cash participants and split methods remain intact when drafts are edited.
 - Project/trip and category/tag labels on record inputs, with activity badges and independent dashboard filters. Labels are preserved through drafts, refunds, and corrections.
+- Reports page and filtered API endpoint for date ranges, project, category, record type, and member, with separated totals and filtered CSV export.
 
 ## Verified at this stopping point
 
