@@ -116,9 +116,14 @@ export function Dashboard({
   }
   async function reverse(id: string, reason: string) {
     try {
+      const command = { action: "reverse", entryId: id, reason, date: today() };
+      const preview = await api<{ previewId: string }>(
+        `/groups/${selected}/preview`,
+        command,
+      );
       await api(
-        `/groups/${selected}/entries/${id}/reverse`,
-        { reason, date: today() },
+        `/groups/${selected}/entries`,
+        { command, previewId: preview.previewId },
         crypto.randomUUID(),
       );
       await refresh();
