@@ -117,6 +117,20 @@ export function Dashboard({
       active = false;
     };
   }, [selected]);
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      const target = event.target as HTMLElement;
+      if (target.matches("input, textarea, select, [contenteditable=true]"))
+        return;
+      if (event.key.toLowerCase() === "n" && group?.role !== "viewer") {
+        event.preventDefault();
+        setAdding(true);
+      }
+      if (event.key === "Escape") setAdding(false);
+    }
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [group?.role]);
   async function createGroup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -291,7 +305,10 @@ export function Dashboard({
                 <a href={`/groups/${group.id}/import`}>Import CSV</a>
               </Button>
               {group.role !== "viewer" && (
-                <Button onClick={() => setAdding(!adding)}>
+                <Button
+                  onClick={() => setAdding(!adding)}
+                  aria-keyshortcuts="N"
+                >
                   <Plus size={16} />
                   Add record
                 </Button>
@@ -479,6 +496,18 @@ export function Dashboard({
                   onClose={() => setAdding(false)}
                   onSaved={refresh}
                 />
+              </div>
+            )}
+            {group.role !== "viewer" && !adding && (
+              <div className="fixed inset-x-0 bottom-4 z-20 flex justify-center px-5 lg:hidden">
+                <Button
+                  className="rounded-full px-6 shadow-lg"
+                  onClick={() => setAdding(true)}
+                  aria-keyshortcuts="N"
+                >
+                  <Plus size={17} /> Quick add{" "}
+                  <span className="ml-1 text-xs opacity-70">(N)</span>
+                </Button>
               </div>
             )}
             <DraftList key={group.id} group={group} onSaved={refresh} />
