@@ -10,7 +10,11 @@ import type { InvitationDelivery } from "./services/invitation-delivery.js";
 export async function createApp(
   db: Database,
   authenticate: Authenticate,
-  options: { logging?: boolean; invitations?: InvitationDelivery } = {},
+  options: {
+    logging?: boolean;
+    invitations?: InvitationDelivery;
+    rateLimit?: { max: number; timeWindow: string };
+  } = {},
 ) {
   const app = Fastify({
     bodyLimit: 64 * 1024,
@@ -28,7 +32,10 @@ export async function createApp(
           },
   });
   await app.register(helmet);
-  await app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
+  await app.register(
+    rateLimit,
+    options.rateLimit ?? { max: 120, timeWindow: "1 minute" },
+  );
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError)
       return reply

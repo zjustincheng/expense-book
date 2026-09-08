@@ -34,6 +34,12 @@ export type GroupDetail = Group & {
   suggestions: { fromMemberId: string; toMemberId: string; amount: string }[];
 };
 export type Preview = {
+  records: {
+    kind: string;
+    amount: string;
+    description: string;
+    date: string;
+  }[];
   previewId: string;
   ledgerVersion: string;
   amount: string;
