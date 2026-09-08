@@ -9,3 +9,5 @@ output "cognito_client_id" { value = aws_cognito_user_pool_client.web.id }
 output "cognito_issuer" { value = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.users.id}" }
 output "cognito_domain" { value = "https://${aws_cognito_user_pool_domain.users.domain}.auth.${var.aws_region}.amazoncognito.com" }
 output "image_repositories" { value = { for name, repository in aws_ecr_repository.application : name => repository.repository_url } }
+output "ecs_execution_role_arn" { value = aws_iam_role.ecs_execution.arn }
+output "backend_runtime_role_arn" { value = aws_iam_role.backend_runtime.arn }

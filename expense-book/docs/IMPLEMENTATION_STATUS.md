@@ -20,6 +20,7 @@
 - Member statement pages with contributing-record effects and PostgreSQL-backed saved split-template records/API scaffolding.
 - Attachment storage foundation: PostgreSQL metadata with tenant-safe entry foreign keys and AWS S3 SDK dependencies are in place; signed upload/download routes and UI are the next part of this milestone.
 - Signed S3 upload and download URL routes with MIME/size limits, tenant authorization, and five-minute URL expiry. Live AWS credentials and browser upload wiring remain deployment setup work.
+- Terraform IAM foundation for separate ECS execution and backend runtime roles, including scoped private-attachment access and runtime secret reads.
 
 ## Verified at this stopping point
 
