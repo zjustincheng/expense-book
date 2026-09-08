@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  Bell,
   BookOpen,
   Check,
   ChevronRight,
@@ -43,6 +44,9 @@ export function Dashboard({
   const [filter, setFilter] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [notifications, setNotifications] = useState<
+    { id: string; name: string; nextRun: string }[]
+  >([]);
   const canLoad = !authConfigured || signedIn;
   const refresh = useCallback(async () => {
     if (!selected) return;
@@ -87,12 +91,21 @@ export function Dashboard({
     let active = true;
     setLoading(true);
     setGroup(null);
+    setNotifications([]);
     setError("");
     setAdding(false);
     setExplanation(null);
-    api<GroupDetail>(`/groups/${selected}`)
-      .then((result) => {
-        if (active) setGroup(result);
+    Promise.all([
+      api<GroupDetail>(`/groups/${selected}`),
+      api<{ notifications: { id: string; name: string; nextRun: string }[] }>(
+        `/groups/${selected}/notifications`,
+      ),
+    ])
+      .then(([result, feed]) => {
+        if (active) {
+          setGroup(result);
+          setNotifications(feed.notifications);
+        }
       })
       .catch((e: Error) => {
         if (active) setError(e.message);
@@ -290,6 +303,14 @@ export function Dashboard({
           >
             {error}
           </div>
+        )}
+        {group && notifications.length > 0 && (
+          <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+            <div className="flex items-center gap-2 font-medium"><Bell size={16} /> Upcoming reminders</div>
+            <ul className="mt-2 space-y-1 text-sm">
+              {notifications.map((notice) => <li key={notice.id}><a className="underline" href={`/groups/${group.id}/recurring`}>{notice.name}</a> is due on {notice.nextRun}.</li>)}
+            </ul>
+          </section>
         )}
         {!canLoad && (
           <section className="rounded-2xl border border-stone-200 bg-white p-10">
