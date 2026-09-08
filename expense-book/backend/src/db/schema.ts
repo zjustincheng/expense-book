@@ -183,6 +183,29 @@ export const entries = pgTable(
     ),
   ],
 );
+export const attachments = pgTable(
+  "attachments",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    entryId: uuid().notNull(),
+    objectKey: text().notNull().unique(),
+    fileName: text().notNull(),
+    contentType: text().notNull(),
+    size: integer().notNull(),
+    createdBy: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.groupId, t.entryId],
+      foreignColumns: [entries.groupId, entries.id],
+    }),
+    index("attachments_entry").on(t.groupId, t.entryId),
+  ],
+);
 export const effects = pgTable(
   "entry_effects",
   {

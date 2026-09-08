@@ -83,6 +83,7 @@ export function EntryFields({
 }) {
   const [kind, setKind] = useState<EntryKind>(initial?.kind ?? "expense");
   const initialActivity = initial && "cash" in initial ? initial : undefined;
+  const initialMethod = initialActivity?.split.method ?? null;
   const [advanced, setAdvanced] = useState(
     Boolean(
       initialActivity &&
@@ -103,13 +104,13 @@ export function EntryFields({
     api<typeof labels>(`/groups/${group.id}/labels`)
       .then((result) => {
         setLabels(result);
-        if (!initialActivity && result.defaultSplitMethod) {
+        if (!initialMethod && result.defaultSplitMethod) {
           setMethod(result.defaultSplitMethod);
           setAdvanced(result.defaultSplitMethod !== "equal");
         }
       })
       .catch(() => undefined);
-  }, [group.id]);
+  }, [group.id, initialMethod]);
   const activity = kind === "income" || kind === "expense";
   const originalIds = new Set(
     initialActivity
