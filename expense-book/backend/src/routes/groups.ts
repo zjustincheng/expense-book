@@ -14,6 +14,7 @@ import { fail } from "../lib/errors.js";
 import { authorize as checkAccess } from "../services/access.js";
 import { registerFinancialRoutes } from "./financial.js";
 import { registerRecurringRoutes } from "./recurring.js";
+import { registerImportRoutes } from "./imports.js";
 
 const groupParams = z.object({ groupId: z.string().uuid() });
 const createGroupInput = z.object({
@@ -234,4 +235,5 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
   });
   registerFinancialRoutes(app, db);
   registerRecurringRoutes(app, db);
+  registerImportRoutes(app, db);
 }
