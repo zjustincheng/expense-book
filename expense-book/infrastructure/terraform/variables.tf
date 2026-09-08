@@ -54,3 +54,19 @@ variable "certificate_arn" {
   type        = string
   description = "ACM certificate ARN covering the application domain."
 }
+variable "app_domain" {
+  type        = string
+  description = "Public application hostname, without a scheme (for example app.example.com)."
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9.-]+[a-z0-9]$", var.app_domain))
+    error_message = "Provide a valid lowercase DNS hostname."
+  }
+}
+variable "hosted_zone_id" {
+  type        = string
+  description = "Route 53 hosted zone ID that contains app_domain."
+}
+variable "cloudfront_certificate_arn" {
+  type        = string
+  description = "ACM certificate ARN in us-east-1 covering app_domain for CloudFront."
+}
