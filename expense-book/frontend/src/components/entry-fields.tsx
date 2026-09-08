@@ -15,6 +15,12 @@ export function readEntryFields(form: FormData): EntryInput {
     description: String(form.get("description")),
     date: String(form.get("date")),
     expression: String(form.get("amount")),
+    ...(String(form.get("project") ?? "").trim()
+      ? { project: String(form.get("project")).trim() }
+      : {}),
+    ...(String(form.get("category") ?? "").trim()
+      ? { category: String(form.get("category")).trim() }
+      : {}),
   };
   if (kind !== "income" && kind !== "expense")
     return {
@@ -143,6 +149,26 @@ export function EntryFields({
             ))}
           </select>
         </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label>
+            Project or trip
+            <input
+              name="project"
+              maxLength={80}
+              defaultValue={initial?.project}
+              placeholder="Weekend away"
+            />
+          </label>
+          <label>
+            Category or tag
+            <input
+              name="category"
+              maxLength={80}
+              defaultValue={initial?.category}
+              placeholder="Food"
+            />
+          </label>
+        </div>
         <label>
           Amount ({group.currency})
           <input

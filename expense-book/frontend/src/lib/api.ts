@@ -26,6 +26,7 @@ export type Entry = {
   amount: string;
   reverses: string | null;
   actor: string;
+  input: unknown;
 };
 export type GroupDetail = Group & {
   members: Member[];

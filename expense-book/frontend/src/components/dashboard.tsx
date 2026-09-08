@@ -41,6 +41,8 @@ export function Dashboard({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [projectFilter, setProjectFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const canLoad = !authConfigured || signedIn;
   const refresh = useCallback(async () => {
     if (!selected) return;
@@ -456,6 +458,24 @@ export function Dashboard({
                       placeholder="Search descriptions or record types"
                     />
                   </label>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label>
+                      <span className="sr-only">Filter by project</span>
+                      <input
+                        value={projectFilter}
+                        onChange={(e) => setProjectFilter(e.target.value)}
+                        placeholder="Filter by project or trip"
+                      />
+                    </label>
+                    <label>
+                      <span className="sr-only">Filter by category</span>
+                      <input
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        placeholder="Filter by category or tag"
+                      />
+                    </label>
+                  </div>
                 </div>
                 {group.entries.length === 0 ? (
                   <p className="p-8 text-sm text-stone-500">
@@ -465,11 +485,28 @@ export function Dashboard({
                 ) : (
                   <ul className="divide-y divide-stone-100">
                     {group.entries
-                      .filter((entry) =>
-                        `${entry.description} ${entry.kind}`
-                          .toLowerCase()
-                          .includes(filter.toLowerCase()),
-                      )
+                      .filter((entry) => {
+                        const input =
+                          typeof entry.input === "object" && entry.input
+                            ? (entry.input as {
+                                project?: string;
+                                category?: string;
+                              })
+                            : {};
+                        return (
+                          `${entry.description} ${entry.kind} ${input.project ?? ""} ${input.category ?? ""}`
+                            .toLowerCase()
+                            .includes(filter.toLowerCase()) &&
+                          (!projectFilter ||
+                            (input.project ?? "")
+                              .toLowerCase()
+                              .includes(projectFilter.toLowerCase())) &&
+                          (!categoryFilter ||
+                            (input.category ?? "")
+                              .toLowerCase()
+                              .includes(categoryFilter.toLowerCase()))
+                        );
+                      })
                       .map((entry) => (
                         <li key={entry.id} className="px-5 py-4">
                           <div className="flex items-start justify-between gap-4">
@@ -481,6 +518,35 @@ export function Dashboard({
                                 <span className="capitalize">{entry.kind}</span>{" "}
                                 · {entry.date}
                               </p>
+                              {typeof entry.input === "object" &&
+                                entry.input &&
+                                ((entry.input as { project?: string })
+                                  .project ||
+                                  (entry.input as { category?: string })
+                                    .category) && (
+                                  <p className="mt-2 flex flex-wrap gap-2 text-xs text-stone-500">
+                                    {(entry.input as { project?: string })
+                                      .project && (
+                                      <span className="rounded-full bg-emerald-50 px-2 py-1">
+                                        Project:{" "}
+                                        {
+                                          (entry.input as { project?: string })
+                                            .project
+                                        }
+                                      </span>
+                                    )}
+                                    {(entry.input as { category?: string })
+                                      .category && (
+                                      <span className="rounded-full bg-stone-100 px-2 py-1">
+                                        #
+                                        {
+                                          (entry.input as { category?: string })
+                                            .category
+                                        }
+                                      </span>
+                                    )}
+                                  </p>
+                                )}
                             </div>
                             <p className="shrink-0 text-sm font-medium">
                               {money(entry.amount, group.currency)}

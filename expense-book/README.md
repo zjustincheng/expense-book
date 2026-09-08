@@ -10,6 +10,8 @@ Cognito authorization-code sign-in with PKCE and access-token verification is im
 
 Admins can now add, rename, archive, and restore members; link their own account; invite people to existing members; and manage admin/editor/viewer access. Invitations expire after seven days and require the invited, verified email to accept. Removing access preserves financial history, and a group must retain at least one admin.
 
+Records can be labeled with an optional project/trip and category/tag. Labels appear on activity and can be searched independently, while the original values remain part of each immutable input snapshot.
+
 ## Structure
 
 - `frontend/`: Next.js website, UI components, server-side authentication callback and API proxy.
