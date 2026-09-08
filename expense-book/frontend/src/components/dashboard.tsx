@@ -287,6 +287,9 @@ export function Dashboard({
               <Button asChild variant="outline">
                 <a href={`/groups/${group.id}/recurring`}>Recurring</a>
               </Button>
+              <Button asChild variant="outline">
+                <a href={`/groups/${group.id}/import`}>Import CSV</a>
+              </Button>
               {group.role !== "viewer" && (
                 <Button onClick={() => setAdding(!adding)}>
                   <Plus size={16} />
@@ -306,9 +309,21 @@ export function Dashboard({
         )}
         {group && notifications.length > 0 && (
           <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
-            <div className="flex items-center gap-2 font-medium"><Bell size={16} /> Upcoming reminders</div>
+            <div className="flex items-center gap-2 font-medium">
+              <Bell size={16} /> Upcoming reminders
+            </div>
             <ul className="mt-2 space-y-1 text-sm">
-              {notifications.map((notice) => <li key={notice.id}><a className="underline" href={`/groups/${group.id}/recurring`}>{notice.name}</a> is due on {notice.nextRun}.</li>)}
+              {notifications.map((notice) => (
+                <li key={notice.id}>
+                  <a
+                    className="underline"
+                    href={`/groups/${group.id}/recurring`}
+                  >
+                    {notice.name}
+                  </a>{" "}
+                  is due on {notice.nextRun}.
+                </li>
+              ))}
             </ul>
           </section>
         )}
