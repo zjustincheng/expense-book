@@ -19,6 +19,7 @@ export function RecurringPage({ groupId }: { groupId: string }) {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
   const load = useCallback(async () => {
     const [detail, recurring] = await Promise.all([
       api<GroupDetail>(`/groups/${groupId}`),
@@ -109,6 +110,32 @@ export function RecurringPage({ groupId }: { groupId: string }) {
       );
     }
   }
+  async function saveEdit(
+    event: React.FormEvent<HTMLFormElement>,
+    row: Recurring,
+  ) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    try {
+      await api(
+        `/groups/${groupId}/recurring/${row.id}`,
+        {
+          name: form.get("name"),
+          frequency: form.get("frequency"),
+          nextRun: form.get("nextRun"),
+        },
+        crypto.randomUUID(),
+        "PATCH",
+      );
+      setEditing(null);
+      setNotice("Recurring schedule updated.");
+      await load();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to update recurring schedule.",
+      );
+    }
+  }
   if (!group)
     return (
       <main className="mx-auto max-w-5xl px-5 py-10">
@@ -174,14 +201,64 @@ export function RecurringPage({ groupId }: { groupId: string }) {
             key={row.id}
             className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-5"
           >
-            <div>
-              <h2 className="font-semibold">{row.name}</h2>
-              <p className="text-sm text-stone-500">
-                {row.input.description} · {row.frequency} · next run{" "}
-                {row.nextRun} · {row.active ? "active" : "paused"}
-              </p>
+            <div className="min-w-0 flex-1">
+              {editing === row.id ? (
+                <form
+                  onSubmit={(event) => void saveEdit(event, row)}
+                  className="flex flex-wrap items-end gap-2"
+                >
+                  <label>
+                    Name
+                    <input
+                      name="name"
+                      defaultValue={row.name}
+                      required
+                      maxLength={100}
+                    />
+                  </label>
+                  <label>
+                    Frequency
+                    <select name="frequency" defaultValue={row.frequency}>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </label>
+                  <label>
+                    Next run
+                    <input
+                      name="nextRun"
+                      type="date"
+                      defaultValue={row.nextRun}
+                      required
+                    />
+                  </label>
+                  <Button type="submit">Save</Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setEditing(null)}
+                  >
+                    Cancel
+                  </Button>
+                </form>
+              ) : (
+                <>
+                  <h2 className="font-semibold">{row.name}</h2>
+                  <p className="text-sm text-stone-500">
+                    {row.input.description} · {row.frequency} · next run{" "}
+                    {row.nextRun} · {row.active ? "active" : "paused"}
+                  </p>
+                </>
+              )}
             </div>
             <div className="flex gap-2">
+              {editing !== row.id && (
+                <Button variant="ghost" onClick={() => setEditing(row.id)}>
+                  Edit
+                </Button>
+              )}
               {row.active && (
                 <Button variant="outline" onClick={() => generate(row)}>
                   Create draft
