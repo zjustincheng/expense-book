@@ -94,6 +94,21 @@ export function RecurringPage({ groupId }: { groupId: string }) {
       );
     }
   }
+  async function generate(row: Recurring) {
+    try {
+      await api(
+        `/groups/${groupId}/recurring/${row.id}/generate`,
+        {},
+        crypto.randomUUID(),
+      );
+      setNotice(`Draft created from ${row.name}.`);
+      await load();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to create recurring draft.",
+      );
+    }
+  }
   if (!group)
     return (
       <main className="mx-auto max-w-5xl px-5 py-10">
@@ -167,6 +182,11 @@ export function RecurringPage({ groupId }: { groupId: string }) {
               </p>
             </div>
             <div className="flex gap-2">
+              {row.active && (
+                <Button variant="outline" onClick={() => generate(row)}>
+                  Create draft
+                </Button>
+              )}
               <Button variant="outline" onClick={() => toggle(row)}>
                 {row.active ? "Pause" : "Resume"}
               </Button>
