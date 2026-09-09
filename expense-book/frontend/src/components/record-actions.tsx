@@ -345,6 +345,33 @@ export function RecordDetails({
                 >
                   Download
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!window.confirm(`Delete ${attachment.fileName}?`))
+                      return;
+                    try {
+                      await api(
+                        `/groups/${group.id}/attachments/${attachment.id}`,
+                        undefined,
+                        crypto.randomUUID(),
+                        "DELETE",
+                      );
+                      setAttachments((current) =>
+                        current.filter((item) => item.id !== attachment.id),
+                      );
+                    } catch (e) {
+                      setError(
+                        e instanceof Error
+                          ? e.message
+                          : "Unable to delete attachment.",
+                      );
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
               </div>
             ))}
           </section>

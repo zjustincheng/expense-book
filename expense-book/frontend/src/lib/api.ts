@@ -56,10 +56,10 @@ export async function api<T>(
   path: string,
   body?: unknown,
   key?: string,
-  method?: "POST" | "PATCH",
+  method?: "POST" | "PATCH" | "DELETE",
 ): Promise<T> {
   const response = await fetch(`/api${path}`, {
-    method: body === undefined ? "GET" : (method ?? "POST"),
+    method: body === undefined ? (method ?? "GET") : (method ?? "POST"),
     headers: {
       "Content-Type": "application/json",
       ...(key ? { "idempotency-key": key } : {}),

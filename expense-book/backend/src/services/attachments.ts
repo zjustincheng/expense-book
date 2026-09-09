@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   S3Client,
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
@@ -49,5 +50,10 @@ export async function downloadUrl(
       ResponseContentDisposition: `attachment; filename="${fileName.replaceAll('"', "")}"`,
     }),
     { expiresIn: 300 },
+  );
+}
+export async function deleteObject(storage: AttachmentStorage, key: string) {
+  await storage.client.send(
+    new DeleteObjectCommand({ Bucket: storage.bucket, Key: key }),
   );
 }

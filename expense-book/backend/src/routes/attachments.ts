@@ -6,6 +6,7 @@ import { attachments, entries } from "../db/schema.js";
 import { fail } from "../lib/errors.js";
 import { authorize } from "../services/access.js";
 import {
+  deleteObject,
   downloadUrl,
   objectKey,
   uploadUrl,
@@ -117,4 +118,24 @@ export function registerAttachmentRoutes(
       };
     },
   );
+  app.delete("/groups/:groupId/attachments/:attachmentId", async (request) => {
+    const { groupId, attachmentId } = z
+      .object({ groupId: z.string().uuid(), attachmentId: z.string().uuid() })
+      .parse(request.params);
+    await authorize(db, groupId, request.subject);
+    const [attachment] = await db
+      .select()
+      .from(attachments)
+      .where(
+        and(eq(attachments.groupId, groupId), eq(attachments.id, attachmentId)),
+      );
+    if (!attachment) fail("Attachment not found.", 404);
+    await db
+      .delete(attachments)
+      .where(
+        and(eq(attachments.groupId, groupId), eq(attachments.id, attachmentId)),
+      );
+    if (storage) await deleteObject(storage, attachment.objectKey);
+    return { deleted: true };
+  });
 }
