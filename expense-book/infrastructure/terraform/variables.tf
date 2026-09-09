@@ -89,3 +89,12 @@ variable "github_repository" {
   default     = null
   description = "GitHub owner/repository allowed to assume the deployment role (for example zjustincheng/expense-book)."
 }
+variable "alert_email" {
+  type        = string
+  default     = null
+  description = "Optional email address for CloudWatch alarm notifications; SNS requires confirmation."
+  validation {
+    condition     = var.alert_email == null || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alert_email))
+    error_message = "Provide a valid email address or leave alert_email null."
+  }
+}
