@@ -1,14 +1,14 @@
 aws_region                    = "us-east-1"
 environment                   = "development"
 name_prefix                   = "replace-with-unique-prefix"
-app_url                       = "https://example.com"
+app_url                       = "https://expense-book.com"
 vpc_id                        = "vpc-replace"
 private_subnet_ids            = ["subnet-replace-a", "subnet-replace-b"]
 public_subnet_ids             = ["subnet-public-a", "subnet-public-b"]
 application_security_group_id = "sg-replace"
 ecs_security_group_id         = "sg-ecs-replace"
 certificate_arn               = "arn:aws:acm:us-east-1:123456789012:certificate/replace-me"
-app_domain                    = "app.example.com"
+app_domain                    = "expense-book.com"
 hosted_zone_id                = "Z00000000000000000000"
 cloudfront_certificate_arn    = "arn:aws:acm:us-east-1:123456789012:certificate/replace-me-cloudfront"
 # Set create_network = true to create the VPC, subnets, NAT gateway, and ECS security group.
