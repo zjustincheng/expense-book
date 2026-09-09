@@ -233,7 +233,7 @@ export function RecordDetails({
           disabled={loading}
           onClick={() => void load(entryId)}
         >
-          Show member balance changes
+          View balance effects
         </Button>
       )}
       {error && (

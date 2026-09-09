@@ -24,6 +24,16 @@ import {
   type GroupDetail,
   type Member,
 } from "@/lib/api";
+const recordTypeLabel: Record<string, string> = {
+  income: "Income",
+  expense: "Expense",
+  obligation: "Direct obligation",
+  transfer: "Bank transfer",
+  settlement: "Settlement",
+  adjustment: "Correction",
+  refund: "Refund",
+  reversal: "Reversal",
+};
 
 export function Dashboard({
   authConfigured,
@@ -934,7 +944,9 @@ export function Dashboard({
                                 {entry.description}
                               </p>
                               <p className="mt-1 text-xs text-stone-500">
-                                <span className="capitalize">{entry.kind}</span>{" "}
+                                <span>
+                                  {recordTypeLabel[entry.kind] ?? entry.kind}
+                                </span>{" "}
                                 · {entry.date}
                               </p>
                               {typeof entry.input === "object" &&
@@ -972,9 +984,13 @@ export function Dashboard({
                             </p>
                           </div>
                           <details className="mt-2 text-xs text-stone-500">
-                            <summary className="cursor-pointer">
-                              Record details
+                            <summary className="cursor-pointer font-medium text-emerald-800">
+                              View record details
                             </summary>
+                            <p className="mt-2 text-stone-500">
+                              See how this record changed member balances and
+                              manage its attachments or corrections.
+                            </p>
                             <p className="mt-2 break-all">
                               Recorded by {entry.actor}
                             </p>
