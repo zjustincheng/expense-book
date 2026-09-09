@@ -45,6 +45,7 @@ export function Dashboard({
   const [projectFilter, setProjectFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [kindFilter, setKindFilter] = useState("");
+  const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [activityPage, setActivityPage] = useState(1);
   const [activityHasMore, setActivityHasMore] = useState(true);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -265,6 +266,31 @@ export function Dashboard({
     const link = document.createElement("a");
     link.href = url;
     link.download = "member-balances.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  function exportSelected() {
+    if (!group || !selectedEntries.length) return;
+    const rows = [
+      ["Date", "Type", "Description", "Amount"],
+      ...group.entries
+        .filter((entry) => selectedEntries.includes(entry.id))
+        .map((entry) => [
+          entry.date,
+          entry.kind,
+          entry.description,
+          entry.amount,
+        ]),
+    ];
+    const safe = (value: string) => `"${value.replaceAll('"', '""')}"`;
+    const url = URL.createObjectURL(
+      new Blob([rows.map((row) => row.map(safe).join(",")).join("\r\n")], {
+        type: "text/csv",
+      }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "selected-activity.csv";
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -818,6 +844,34 @@ export function Dashboard({
                       />
                     </label>
                   </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedEntries.length > 0 &&
+                          selectedEntries.length === group.entries.length
+                        }
+                        onChange={(event) =>
+                          setSelectedEntries(
+                            event.target.checked
+                              ? group.entries.map((entry) => entry.id)
+                              : [],
+                          )
+                        }
+                      />{" "}
+                      Select visible activity
+                    </label>
+                    {selectedEntries.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={exportSelected}
+                      >
+                        Export selected ({selectedEntries.length})
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {group.entries.length === 0 ? (
                   <p className="p-8 text-sm text-stone-500">
@@ -851,7 +905,21 @@ export function Dashboard({
                         );
                       })
                       .map((entry) => (
-                        <li key={entry.id} className="px-5 py-4">
+                        <li key={entry.id} className="flex gap-3 px-5 py-4">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${entry.description}`}
+                            checked={selectedEntries.includes(entry.id)}
+                            onChange={(event) =>
+                              setSelectedEntries(
+                                event.target.checked
+                                  ? [...selectedEntries, entry.id]
+                                  : selectedEntries.filter(
+                                      (id) => id !== entry.id,
+                                    ),
+                              )
+                            }
+                          />
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
                               <p className="break-words text-sm font-medium">
