@@ -1,4 +1,20 @@
 @import "tailwindcss";
+
+@media print {
+  aside,
+  button,
+  form,
+  a {
+    display: none !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  body {
+    background: white !important;
+  }
+}
 :root {
   color-scheme: light;
   --background: #f7f8f5;

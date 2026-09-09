@@ -35,17 +35,53 @@ export function ReportPage({ groupId }: { groupId: string }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  function applyPreset(preset: "month" | "lastMonth" | "year") {
+    const now = new Date();
+    const start = new Date(
+      now.getFullYear(),
+      preset === "lastMonth"
+        ? now.getMonth() - 1
+        : preset === "year"
+          ? 0
+          : now.getMonth(),
+      1,
+    );
+    const end =
+      preset === "lastMonth"
+        ? new Date(now.getFullYear(), now.getMonth(), 0)
+        : now;
+    const next = {
+      ...filters,
+      from: start.toISOString().slice(0, 10),
+      to: end.toISOString().slice(0, 10),
+    };
+    setFilters(next);
+    setPage(1);
+    void load(next);
+  }
   const [savedFilters, setSavedFilters] = useState<string[]>([]);
   useEffect(() => {
     try {
-      setSavedFilters(JSON.parse(localStorage.getItem(`expense-book:report-filters:${groupId}`) ?? "[]"));
-    } catch { setSavedFilters([]); }
+      setSavedFilters(
+        JSON.parse(
+          localStorage.getItem(`expense-book:report-filters:${groupId}`) ??
+            "[]",
+        ),
+      );
+    } catch {
+      setSavedFilters([]);
+    }
   }, [groupId]);
   function saveCurrentFilter() {
     const value = JSON.stringify(filters);
-    const next = savedFilters.includes(value) ? savedFilters : [...savedFilters, value].slice(-5);
+    const next = savedFilters.includes(value)
+      ? savedFilters
+      : [...savedFilters, value].slice(-5);
     setSavedFilters(next);
-    localStorage.setItem(`expense-book:report-filters:${groupId}`, JSON.stringify(next));
+    localStorage.setItem(
+      `expense-book:report-filters:${groupId}`,
+      JSON.stringify(next),
+    );
   }
   const load = useCallback(
     async (next = filters) => {
@@ -124,6 +160,13 @@ export function ReportPage({ groupId }: { groupId: string }) {
         </div>
         <Button variant="outline" onClick={exportCsv} disabled={!report}>
           Export CSV
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => window.print()}
+          disabled={!report}
+        >
+          Print
         </Button>
       </header>
       <form
@@ -233,6 +276,30 @@ export function ReportPage({ groupId }: { groupId: string }) {
           </Button>
         </div>
       </form>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-stone-500">Quick range:</span>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => applyPreset("month")}
+        >
+          This month
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => applyPreset("lastMonth")}
+        >
+          Last month
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => applyPreset("year")}
+        >
+          Year to date
+        </Button>
+      </div>
       {savedFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-stone-500">Saved filters:</span>
