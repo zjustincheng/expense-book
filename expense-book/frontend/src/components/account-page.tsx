@@ -6,6 +6,7 @@ export function AccountPage() {
   const [session, setSession] = useState<{
     subject: string;
     verifiedEmail: string;
+    notifications?: Partial<typeof preferences>;
   } | null>(null);
   const [error, setError] = useState("");
   const [preferences, setPreferences] = useState({
@@ -26,17 +27,36 @@ export function AccountPage() {
       /* defaults */
     }
   }, []);
-  function toggle(key: keyof typeof preferences) {
+  async function toggle(key: keyof typeof preferences) {
     const next = { ...preferences, [key]: !preferences[key] };
     setPreferences(next);
     localStorage.setItem(
       "expense-book:notification-preferences",
       JSON.stringify(next),
     );
+    try {
+      await api(
+        "/session/preferences",
+        { notifications: next },
+        crypto.randomUUID(),
+        "PATCH",
+      );
+    } catch {
+      setError("Preference saved locally; server sync will retry next time.");
+    }
   }
   useEffect(() => {
     api<typeof session>("/session")
-      .then(setSession)
+      .then((result) => {
+        if (!result) return;
+        setSession(result);
+        if (result.notifications && Object.keys(result.notifications).length) {
+          setPreferences((current) => ({
+            ...current,
+            ...result.notifications,
+          }));
+        }
+      })
       .catch((e: Error) => setError(e.message));
   }, []);
   return (

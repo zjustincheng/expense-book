@@ -99,6 +99,13 @@
       "when": 1788914251969,
       "tag": "0013_bright_ricochet",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788921450683,
+      "tag": "0014_heavy_tattoo",
+      "breakpoints": true
     }
   ]
 }
