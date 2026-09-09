@@ -127,6 +127,7 @@ export function ReportPage({
         "Amount",
         "Actor",
         "Record ID",
+        "Original input",
       ],
       ...records.map((record) => {
         const input =
@@ -142,6 +143,7 @@ export function ReportPage({
           money(record.amount, group.currency),
           record.actor,
           record.id,
+          JSON.stringify(record.input),
         ];
       }),
     ];
