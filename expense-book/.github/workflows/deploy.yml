@@ -6,6 +6,9 @@ on:
 permissions:
   contents: read
   id-token: write
+concurrency:
+  group: deploy-${{ vars.ENVIRONMENT }}
+  cancel-in-progress: true
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
@@ -14,6 +17,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ vars.ENVIRONMENT }}
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
