@@ -97,4 +97,7 @@ resource "aws_ecs_service" "frontend" {
     enable   = true
     rollback = true
   }
+  # The target group is not associated with a load balancer until the HTTPS
+  # listener exists. Prevent ECS from racing the listener after a partial apply.
+  depends_on = [aws_lb_listener.https]
 }
