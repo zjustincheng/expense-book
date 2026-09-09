@@ -65,6 +65,7 @@ export async function api<T>(
       ...(key ? { "idempotency-key": key } : {}),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    signal: AbortSignal.timeout(15_000),
   });
   const data = await response.json();
   if (response.status === 401 && typeof window !== "undefined") {
