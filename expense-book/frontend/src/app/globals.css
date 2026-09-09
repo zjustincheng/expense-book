@@ -33,6 +33,14 @@ select,
 textarea {
   -webkit-tap-highlight-color: transparent;
 }
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #27664b;
+  outline-offset: 3px;
+}
 button:not(:disabled),
 select {
   cursor: pointer;
@@ -52,6 +60,21 @@ select:focus,
 textarea:focus {
   outline: 2px solid #27664b;
   outline-offset: 2px;
+}
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  z-index: 50;
+  transform: translateY(-200%);
+  border-radius: 8px;
+  background: #123b2a;
+  color: white;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.875rem;
+}
+.skip-link:focus {
+  transform: translateY(0);
 }
 label {
   display: grid;

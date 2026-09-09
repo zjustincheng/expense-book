@@ -197,6 +197,9 @@ export function ReportPage({
     );
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-5 py-10">
+      <a className="skip-link" href="#report-results">
+        Skip to report results
+      </a>
       <a href={`/?group=${groupId}`} className="text-sm text-emerald-800">
         ← Back to group
       </a>
@@ -392,6 +395,7 @@ export function ReportPage({
       )}
       {report && (
         <>
+          <div id="report-results" tabIndex={-1} />
           <p className="text-sm text-stone-500">
             {report.count} matching records · page {report.page ?? page}
           </p>

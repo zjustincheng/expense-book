@@ -295,6 +295,9 @@ export function Dashboard({
   }
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
+      <a className="skip-link" href="#overview">
+        Skip to main content
+      </a>
       <aside className="flex flex-col border-r border-stone-200 bg-[#eef1e9] p-6 lg:sticky lg:top-0 lg:h-screen">
         <a
           href="/"
@@ -380,6 +383,8 @@ export function Dashboard({
       </aside>
       <main
         id="overview"
+        tabIndex={-1}
+        aria-label="Expense Book workspace"
         className="mx-auto w-full max-w-[1400px] px-5 py-8 sm:px-10 lg:py-12"
       >
         {commandOpen && group && (
