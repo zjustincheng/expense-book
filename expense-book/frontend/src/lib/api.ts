@@ -56,9 +56,10 @@ export async function api<T>(
   path: string,
   body?: unknown,
   key?: string,
+  method?: "POST" | "PATCH",
 ): Promise<T> {
   const response = await fetch(`/api${path}`, {
-    method: body === undefined ? "GET" : "POST",
+    method: body === undefined ? "GET" : (method ?? "POST"),
     headers: {
       "Content-Type": "application/json",
       ...(key ? { "idempotency-key": key } : {}),
