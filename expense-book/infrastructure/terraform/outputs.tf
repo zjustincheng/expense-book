@@ -15,3 +15,7 @@ output "application_load_balancer_dns" { value = aws_lb.application.dns_name }
 output "application_url" { value = "https://${var.app_domain}" }
 output "cloudfront_distribution_domain" { value = aws_cloudfront_distribution.application.domain_name }
 output "private_backend_hostname" { value = "backend.${aws_service_discovery_private_dns_namespace.application.name}" }
+output "network_vpc_id" { value = local.network_vpc_id }
+output "network_private_subnet_ids" { value = local.network_private_ids }
+output "network_public_subnet_ids" { value = local.network_public_ids }
+output "network_ecs_security_group_id" { value = local.network_ecs_sg_id }

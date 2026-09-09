@@ -1,7 +1,7 @@
 resource "aws_security_group" "load_balancer" {
   name_prefix = "${local.name}-alb-"
   description = "HTTPS ingress for Expense Book"
-  vpc_id      = var.vpc_id
+  vpc_id      = local.network_vpc_id
   egress {
     from_port   = 0
     to_port     = 0
@@ -17,7 +17,7 @@ resource "aws_vpc_security_group_ingress_rule" "load_balancer_https" {
   to_port           = 443
 }
 resource "aws_vpc_security_group_ingress_rule" "frontend_from_load_balancer" {
-  security_group_id            = var.ecs_security_group_id
+  security_group_id            = local.network_ecs_sg_id
   referenced_security_group_id = aws_security_group.load_balancer.id
   ip_protocol                  = "tcp"
   from_port                    = 3000
@@ -28,7 +28,7 @@ resource "aws_lb" "application" {
   internal                   = false
   load_balancer_type         = "application"
   security_groups            = [aws_security_group.load_balancer.id]
-  subnets                    = var.public_subnet_ids
+  subnets                    = local.network_public_ids
   enable_deletion_protection = var.environment == "production"
 }
 resource "aws_lb_target_group" "frontend" {
@@ -36,7 +36,7 @@ resource "aws_lb_target_group" "frontend" {
   port        = 3000
   protocol    = "HTTP"
   target_type = "ip"
-  vpc_id      = var.vpc_id
+  vpc_id      = local.network_vpc_id
   health_check {
     path    = "/"
     matcher = "200-399"

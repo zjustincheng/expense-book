@@ -1,7 +1,7 @@
 resource "aws_service_discovery_private_dns_namespace" "application" {
   name        = "${local.name}.internal"
   description = "Private service discovery for ${local.name} ECS services"
-  vpc         = var.vpc_id
+  vpc         = local.network_vpc_id
 }
 
 resource "aws_service_discovery_service" "backend" {
@@ -23,8 +23,8 @@ resource "aws_service_discovery_service" "backend" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "backend_from_ecs" {
-  security_group_id            = var.ecs_security_group_id
-  referenced_security_group_id = var.ecs_security_group_id
+  security_group_id            = local.network_ecs_sg_id
+  referenced_security_group_id = local.network_ecs_sg_id
   ip_protocol                  = "tcp"
   from_port                    = 4000
   to_port                      = 4000

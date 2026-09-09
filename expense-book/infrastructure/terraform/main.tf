@@ -36,18 +36,18 @@ resource "aws_s3_bucket_policy" "attachments" {
 resource "aws_security_group" "database" {
   name_prefix = "${local.name}-database-"
   description = "RDS access from the backend service only"
-  vpc_id      = var.vpc_id
+  vpc_id      = local.network_vpc_id
 }
 resource "aws_vpc_security_group_ingress_rule" "database" {
   security_group_id            = aws_security_group.database.id
-  referenced_security_group_id = var.application_security_group_id
+  referenced_security_group_id = local.network_ecs_sg_id
   ip_protocol                  = "tcp"
   from_port                    = 5432
   to_port                      = 5432
 }
 resource "aws_db_subnet_group" "database" {
   name       = local.name
-  subnet_ids = var.private_subnet_ids
+  subnet_ids = local.network_private_ids
 }
 resource "aws_db_instance" "postgres" {
   identifier                      = local.name
