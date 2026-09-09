@@ -376,4 +376,23 @@ describe("group membership and invitations", () => {
       200, 409,
     ]);
   });
+  it("persists account notification preferences across session reads", async () => {
+    const update = await app.inject({
+      url: "/api/session/preferences",
+      method: "PATCH",
+      headers: { "x-test-subject": "alice" },
+      payload: {
+        notifications: {
+          recurring_due: false,
+          draft_review: true,
+        },
+      },
+    });
+    expect(update.statusCode).toBe(200);
+    const session = await call("alice", "/api/session");
+    expect(session.json().notifications).toEqual({
+      recurring_due: false,
+      draft_review: true,
+    });
+  });
 });
