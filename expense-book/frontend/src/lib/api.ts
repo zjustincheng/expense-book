@@ -67,7 +67,15 @@ export async function api<T>(
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     signal: AbortSignal.timeout(15_000),
   });
-  const data = await response.json();
+  const raw = await response.text();
+  let data: { error?: string } = {};
+  if (raw) {
+    try {
+      data = JSON.parse(raw) as { error?: string };
+    } catch {
+      data = { error: raw };
+    }
+  }
   if (response.status === 401 && typeof window !== "undefined") {
     const returnTo = `${window.location.pathname}${window.location.search}`;
     window.location.assign(
