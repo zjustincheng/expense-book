@@ -49,3 +49,12 @@ jobs:
       - run: terraform fmt -check
       - run: terraform init -backend=false
       - run: terraform validate
+  container-images:
+    runs-on: ubuntu-latest
+    needs: application
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build frontend image
+        run: docker build -f frontend/Dockerfile -t expense-book-frontend:ci .
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t expense-book-backend:ci .
