@@ -44,6 +44,7 @@ export function Dashboard({
   const [filter, setFilter] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [kindFilter, setKindFilter] = useState("");
   const [notifications, setNotifications] = useState<
     {
       id: string;
@@ -745,6 +746,44 @@ export function Dashboard({
                       />
                     </label>
                     <label>
+                      <span className="sr-only">Filter by record type</span>
+                      <select
+                        value={kindFilter}
+                        onChange={(e) => setKindFilter(e.target.value)}
+                      >
+                        <option value="">All record types</option>
+                        {[
+                          "income",
+                          "expense",
+                          "obligation",
+                          "transfer",
+                          "settlement",
+                          "adjustment",
+                          "refund",
+                          "reversal",
+                        ].map((kind) => (
+                          <option key={kind}>{kind}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {(filter ||
+                      projectFilter ||
+                      categoryFilter ||
+                      kindFilter) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                          setFilter("");
+                          setProjectFilter("");
+                          setCategoryFilter("");
+                          setKindFilter("");
+                        }}
+                      >
+                        Clear filters
+                      </Button>
+                    )}
+                    <label>
                       <span className="sr-only">Filter by category</span>
                       <input
                         value={categoryFilter}
@@ -781,7 +820,8 @@ export function Dashboard({
                           (!categoryFilter ||
                             (input.category ?? "")
                               .toLowerCase()
-                              .includes(categoryFilter.toLowerCase()))
+                              .includes(categoryFilter.toLowerCase())) &&
+                          (!kindFilter || entry.kind === kindFilter)
                         );
                       })
                       .map((entry) => (
