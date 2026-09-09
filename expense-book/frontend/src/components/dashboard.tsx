@@ -484,6 +484,9 @@ export function Dashboard({
                 <a href={`/groups/${group.id}/reports`}>Reports</a>
               </Button>
               <Button asChild variant="outline">
+                <a href={`/groups/${group.id}/search`}>Search</a>
+              </Button>
+              <Button asChild variant="outline">
                 <a href={`/groups/${group.id}/recurring`}>Recurring</a>
               </Button>
               <Button asChild variant="outline">

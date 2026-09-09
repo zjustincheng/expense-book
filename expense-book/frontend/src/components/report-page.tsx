@@ -20,7 +20,13 @@ const kinds = [
   "refund",
   "reversal",
 ];
-export function ReportPage({ groupId }: { groupId: string }) {
+export function ReportPage({
+  groupId,
+  searchMode = false,
+}: {
+  groupId: string;
+  searchMode?: boolean;
+}) {
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [report, setReport] = useState<Report | null>(null);
   const [filters, setFilters] = useState({
@@ -153,9 +159,13 @@ export function ReportPage({ groupId }: { groupId: string }) {
       </a>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold">Reports</h1>
+          <h1 className="text-3xl font-semibold">
+            {searchMode ? "Search activity" : "Reports"}
+          </h1>
           <p className="mt-2 text-sm text-stone-500">
-            Filter posted activity and see each financial concept separately.
+            {searchMode
+              ? "Search every posted record across this group."
+              : "Filter posted activity and see each financial concept separately."}
           </p>
         </div>
         <Button variant="outline" onClick={exportCsv} disabled={!report}>
