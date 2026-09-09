@@ -6,6 +6,7 @@ import {
   drafts,
   importBatches,
   invitations,
+  notificationDismissals,
   recurringTransactions,
 } from "../db/schema.js";
 import { entryInput } from "../domain/ledger.js";
@@ -204,16 +205,54 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         .orderBy(asc(importBatches.createdAt))
         .limit(3),
     ]);
+    const notifications = [
+      ...due.map((row) => ({ type: "recurring_due", ...row })),
+      ...draftRows.map((row) => ({ type: "draft_review", ...row })),
+      ...invitationRows.map((row) => ({
+        type: "invitation_pending",
+        ...row,
+      })),
+      ...importRows.map((row) => ({ type: "import_complete", ...row })),
+    ];
+    const dismissed = await db
+      .select({
+        type: notificationDismissals.notificationType,
+        id: notificationDismissals.notificationId,
+      })
+      .from(notificationDismissals)
+      .where(
+        and(
+          eq(notificationDismissals.groupId, groupId),
+          eq(notificationDismissals.subject, request.subject),
+        ),
+      );
+    const keys = new Set(dismissed.map((row) => `${row.type}:${row.id}`));
     return {
-      notifications: [
-        ...due.map((row) => ({ type: "recurring_due", ...row })),
-        ...draftRows.map((row) => ({ type: "draft_review", ...row })),
-        ...invitationRows.map((row) => ({
-          type: "invitation_pending",
-          ...row,
-        })),
-        ...importRows.map((row) => ({ type: "import_complete", ...row })),
-      ],
+      notifications: notifications.filter(
+        (row) => !keys.has(`${row.type}:${row.id}`),
+      ),
     };
   });
+  app.post(
+    "/groups/:groupId/notifications/:type/:notificationId/dismiss",
+    async (request) => {
+      const { groupId, type, notificationId } = params
+        .extend({
+          type: z.string().min(1).max(40),
+          notificationId: z.string().uuid(),
+        })
+        .parse(request.params);
+      await authorize(db, groupId, request.subject, true);
+      await db
+        .insert(notificationDismissals)
+        .values({
+          groupId,
+          subject: request.subject,
+          notificationType: type,
+          notificationId,
+        })
+        .onConflictDoNothing();
+      return { dismissed: true };
+    },
+  );
 }

@@ -483,6 +483,11 @@ export function Dashboard({
                             "expense-book:dismissed-notifications",
                             JSON.stringify(next),
                           );
+                          void api(
+                            `/groups/${group.id}/notifications/${notice.type}/${notice.id}/dismiss`,
+                            {},
+                            crypto.randomUUID(),
+                          );
                         }}
                       >
                         Dismiss
