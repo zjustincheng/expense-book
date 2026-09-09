@@ -5,7 +5,6 @@ import {
   ArrowUpRight,
   Bell,
   BookOpen,
-  Check,
   ChevronRight,
   CircleHelp,
   Download,
@@ -673,7 +672,7 @@ export function Dashboard({
           <>
             <div className="mb-4 flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-widest text-stone-500">
-                All recorded activity
+                Activity overview
               </p>
               <span className="rounded-full border border-stone-200 px-3 py-1 text-xs text-stone-500">
                 {group.currency} · All time
@@ -863,7 +862,7 @@ export function Dashboard({
                           )
                         }
                       />{" "}
-                      Select visible activity
+                      Select all shown records
                     </label>
                     {selectedEntries.length > 0 && (
                       <Button
@@ -1101,10 +1100,7 @@ export function Dashboard({
                   )}
                 </section>
                 <section className="rounded-2xl border border-[#d9e3cc] bg-[#edf3e5] p-5">
-                  <div className="mb-3 flex items-center gap-2">
-                    <Check size={18} className="text-emerald-800" />
-                    <h2 className="font-semibold">A clear path to settled</h2>
-                  </div>
+                  <h2 className="mb-3 font-semibold">Settlement suggestions</h2>
                   {group.suggestions.length ? (
                     group.suggestions.map((s) => (
                       <p
