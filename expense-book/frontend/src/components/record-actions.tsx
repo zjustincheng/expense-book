@@ -230,6 +230,7 @@ export function RecordDetails({
         <Button
           size="sm"
           variant="outline"
+          aria-label="Show member balance changes"
           disabled={loading}
           onClick={() => void load(entryId)}
         >

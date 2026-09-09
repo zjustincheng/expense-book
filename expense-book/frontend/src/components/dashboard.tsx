@@ -816,7 +816,7 @@ export function Dashboard({
                       />
                     </label>
                     <label>
-                      <span className="sr-only">Filter by record type</span>
+                      <span className="sr-only">Activity type filter</span>
                       <select
                         value={kindFilter}
                         onChange={(e) => setKindFilter(e.target.value)}
@@ -987,7 +987,7 @@ export function Dashboard({
                             </p>
                           </div>
                           <details className="mt-2 basis-full min-w-0 text-xs text-stone-500">
-                            <summary className="cursor-pointer whitespace-nowrap font-medium text-emerald-800">
+                            <summary className="cursor-pointer font-medium text-emerald-800">
                               View record details
                             </summary>
                             <p className="mt-2 text-stone-500">
