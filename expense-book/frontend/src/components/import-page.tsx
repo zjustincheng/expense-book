@@ -21,6 +21,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
   const [loading, setLoading] = useState(false);
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [payer, setPayer] = useState("");
+  const [rowPayers, setRowPayers] = useState<Record<number, string>>({});
   const [confirmed, setConfirmed] = useState(0);
   const [includeDuplicates, setIncludeDuplicates] = useState(false);
   const [history, setHistory] = useState<
@@ -56,6 +57,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
           crypto.randomUUID(),
         ),
       );
+      setRowPayers({});
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to preview this CSV.");
     } finally {
@@ -72,6 +74,10 @@ export function ImportPage({ groupId }: { groupId: string }) {
         `/groups/${groupId}/import/confirm`,
         {
           rows: preview.rows
+            .map((row, index) => ({
+              ...row,
+              cashMemberId: rowPayers[index] ?? payer,
+            }))
             .filter(
               (row) =>
                 (includeDuplicates || !row.duplicate) &&
@@ -157,13 +163,18 @@ export function ImportPage({ groupId }: { groupId: string }) {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-stone-200 bg-stone-50">
                 <tr>
-                  {["Date", "Description", "Type", "Amount", "Status"].map(
-                    (heading) => (
-                      <th key={heading} className="px-4 py-3 font-medium">
-                        {heading}
-                      </th>
-                    ),
-                  )}
+                  {[
+                    "Date",
+                    "Description",
+                    "Type",
+                    "Amount",
+                    "Payer",
+                    "Status",
+                  ].map((heading) => (
+                    <th key={heading} className="px-4 py-3 font-medium">
+                      {heading}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -176,6 +187,31 @@ export function ImportPage({ groupId }: { groupId: string }) {
                     <td className="px-4 py-3">{row.description}</td>
                     <td className="px-4 py-3">{row.kind}</td>
                     <td className="px-4 py-3">{row.amount}</td>
+                    <td className="px-4 py-3">
+                      {group &&
+                      (row.kind === "income" || row.kind === "expense") ? (
+                        <select
+                          aria-label={`Payer for row ${index + 1}`}
+                          value={rowPayers[index] ?? payer}
+                          onChange={(event) =>
+                            setRowPayers({
+                              ...rowPayers,
+                              [index]: event.target.value,
+                            })
+                          }
+                        >
+                          {group.members
+                            .filter((member) => !member.archivedAt)
+                            .map((member) => (
+                              <option key={member.id} value={member.id}>
+                                {member.name}
+                              </option>
+                            ))}
+                        </select>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       {row.duplicate ? (
                         <span className="text-amber-700">
