@@ -40,6 +40,7 @@ export function ReportPage({
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(1);
   function applyPreset(preset: "month" | "lastMonth" | "year") {
     const now = new Date();
@@ -114,11 +115,20 @@ export function ReportPage({
       .then(() => load())
       .catch((e: Error) => setError(e.message));
   }, [groupId, load]);
-  function exportCsv() {
-    if (!report || !group) return;
+  function downloadCsv(records: GroupDetail["entries"]) {
+    if (!group) return;
     const rows = [
-      ["Date", "Type", "Description", "Project", "Category", "Amount"],
-      ...report.records.map((record) => {
+      [
+        "Date",
+        "Type",
+        "Description",
+        "Project",
+        "Category",
+        "Amount",
+        "Actor",
+        "Record ID",
+      ],
+      ...records.map((record) => {
         const input =
           typeof record.input === "object" && record.input
             ? (record.input as { project?: string; category?: string })
@@ -130,6 +140,8 @@ export function ReportPage({
           input.project ?? "",
           input.category ?? "",
           money(record.amount, group.currency),
+          record.actor,
+          record.id,
         ];
       }),
     ];
@@ -144,6 +156,37 @@ export function ReportPage({
     link.download = `${group.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-report.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  }
+  function exportCsv() {
+    if (report) downloadCsv(report.records);
+  }
+  async function exportAllCsv() {
+    if (!group) return;
+    setExporting(true);
+    setError("");
+    try {
+      const records: GroupDetail["entries"] = [];
+      let nextPage = 1;
+      let hasMore = true;
+      while (hasMore) {
+        const query = new URLSearchParams(
+          Object.entries({
+            ...filters,
+            page: String(nextPage),
+            pageSize: "100",
+          }).filter(([, value]) => value),
+        );
+        const result = await api<Report>(`/groups/${groupId}/reports?${query}`);
+        records.push(...result.records);
+        hasMore = Boolean(result.hasMore);
+        nextPage += 1;
+      }
+      downloadCsv(records);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to export report.");
+    } finally {
+      setExporting(false);
+    }
   }
   if (!group)
     return (
@@ -168,9 +211,18 @@ export function ReportPage({
               : "Filter posted activity and see each financial concept separately."}
           </p>
         </div>
-        <Button variant="outline" onClick={exportCsv} disabled={!report}>
-          Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCsv} disabled={!report}>
+            Export page
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => void exportAllCsv()}
+            disabled={!report || exporting}
+          >
+            {exporting ? "Exporting…" : "Export all"}
+          </Button>
+        </div>
         <Button
           variant="outline"
           onClick={() => window.print()}
