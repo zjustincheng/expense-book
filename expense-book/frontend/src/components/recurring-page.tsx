@@ -110,6 +110,23 @@ export function RecurringPage({ groupId }: { groupId: string }) {
       );
     }
   }
+  async function generateDue() {
+    try {
+      const result = await api<{ count: number }>(
+        `/groups/${groupId}/recurring/generate-due`,
+        {},
+        crypto.randomUUID(),
+      );
+      setNotice(
+        `${result.count} due draft${result.count === 1 ? "" : "s"} created for review.`,
+      );
+      await load();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to generate due drafts.",
+      );
+    }
+  }
   async function saveEdit(
     event: React.FormEvent<HTMLFormElement>,
     row: Recurring,
@@ -155,9 +172,14 @@ export function RecurringPage({ groupId }: { groupId: string }) {
             date.
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Cancel" : "Add recurring"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => void generateDue()}>
+            Generate due drafts
+          </Button>
+          <Button onClick={() => setShowForm(!showForm)}>
+            {showForm ? "Cancel" : "Add recurring"}
+          </Button>
+        </div>
       </header>
       {(error || notice) && (
         <p
