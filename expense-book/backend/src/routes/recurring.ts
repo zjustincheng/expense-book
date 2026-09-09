@@ -158,6 +158,48 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
       return reply.code(201).send({ draft, nextRun: updated?.nextRun });
     },
   );
+  app.post(
+    "/groups/:groupId/recurring/generate-due",
+    async (request, reply) => {
+      const { groupId } = params.parse(request.params);
+      await authorize(db, groupId, request.subject, true);
+      const today = new Date().toISOString().slice(0, 10);
+      const due = await db
+        .select()
+        .from(recurringTransactions)
+        .where(
+          and(
+            eq(recurringTransactions.groupId, groupId),
+            eq(recurringTransactions.active, 1),
+            lte(recurringTransactions.nextRun, today),
+          ),
+        );
+      const generated = [];
+      for (const row of due) {
+        const draft = await changeDraft(
+          db,
+          groupId,
+          request.subject,
+          { action: "create", input: row.input },
+          crypto.randomUUID(),
+        );
+        await db
+          .update(recurringTransactions)
+          .set({
+            nextRun: advanceDate(row.nextRun, row.frequency),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(recurringTransactions.groupId, groupId),
+              eq(recurringTransactions.id, row.id),
+            ),
+          );
+        generated.push({ id: row.id, name: row.name, draft });
+      }
+      return reply.code(201).send({ generated, count: generated.length });
+    },
+  );
   app.get("/groups/:groupId/notifications", async (request) => {
     const { groupId } = params.parse(request.params);
     await authorize(db, groupId, request.subject);
