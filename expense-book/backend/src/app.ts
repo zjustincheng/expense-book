@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { sql } from "drizzle-orm";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { z, ZodError } from "zod";
@@ -61,6 +62,14 @@ export async function createApp(
     });
   });
   app.get("/health", async () => ({ status: "ok" }));
+  app.get("/ready", async (_request, reply) => {
+    try {
+      await db.execute(sql`select 1`);
+      return { status: "ready" };
+    } catch {
+      return reply.code(503).send({ status: "unavailable" });
+    }
+  });
   app.register(
     async (api) => {
       api.addHook("onRequest", async (request) => {
