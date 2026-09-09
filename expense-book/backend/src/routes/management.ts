@@ -30,7 +30,10 @@ export function registerManagementRoutes(
   db: Database,
   delivery?: InvitationDelivery,
 ) {
-  app.get("/session", async (request) => ({ subject: request.subject }));
+  app.get("/session", async (request) => ({
+    subject: request.subject,
+    verifiedEmail: await request.identity.verifiedEmail(),
+  }));
   app.get("/groups/:groupId/settings", async (request) => {
     const { groupId } = groupParams.parse(request.params);
     await requireAdmin(db, groupId, request.subject);

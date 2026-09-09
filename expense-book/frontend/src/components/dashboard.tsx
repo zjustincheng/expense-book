@@ -290,6 +290,14 @@ export function Dashboard({
             </Button>
           )}
           {signedIn && (
+            <a
+              href="/account"
+              className="mt-2 block text-xs text-stone-500 underline"
+            >
+              Account settings
+            </a>
+          )}
+          {signedIn && (
             <form action="/auth/logout" method="post">
               <Button variant="ghost" size="sm">
                 Sign out
