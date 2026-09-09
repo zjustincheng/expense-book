@@ -217,6 +217,38 @@ export function RecurringPage({ groupId }: { groupId: string }) {
           <Button type="submit">Save recurring transaction</Button>
         </form>
       )}
+      <section className="rounded-2xl border border-stone-200 bg-white p-5">
+        <h2 className="font-semibold">Upcoming schedule</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {rows
+            .filter((row) => row.active)
+            .sort((a, b) => a.nextRun.localeCompare(b.nextRun))
+            .map((row) => (
+              <div
+                key={`calendar-${row.id}`}
+                className="rounded-xl bg-stone-50 p-4"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                  {new Date(`${row.nextRun}T00:00:00Z`).toLocaleDateString(
+                    undefined,
+                    { month: "long", year: "numeric" },
+                  )}
+                </p>
+                <p className="mt-2 font-medium">{row.name}</p>
+                <p className="mt-1 text-sm text-stone-600">
+                  {new Date(`${row.nextRun}T00:00:00Z`).toLocaleDateString(
+                    undefined,
+                    { weekday: "short", month: "short", day: "numeric" },
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-stone-500">{row.frequency}</p>
+              </div>
+            ))}
+          {!rows.some((row) => row.active) && (
+            <p className="text-sm text-stone-500">No upcoming schedules.</p>
+          )}
+        </div>
+      </section>
       <section className="space-y-3">
         {rows.map((row) => (
           <article
