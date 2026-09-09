@@ -22,6 +22,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [payer, setPayer] = useState("");
   const [confirmed, setConfirmed] = useState(0);
+  const [includeDuplicates, setIncludeDuplicates] = useState(false);
   useEffect(() => {
     api<GroupDetail>(`/groups/${groupId}`)
       .then((value) => {
@@ -65,7 +66,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
           rows: preview.rows
             .filter(
               (row) =>
-                !row.duplicate &&
+                (includeDuplicates || !row.duplicate) &&
                 (row.kind === "income" || row.kind === "expense"),
             )
             .map((row) => ({ ...row, cashMemberId: payer, splitMemberIds })),
@@ -202,12 +203,22 @@ export function ImportPage({ groupId }: { groupId: string }) {
                     ))}
                 </select>
               </label>
+              <label className="flex items-center gap-2 pb-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={includeDuplicates}
+                  onChange={(event) =>
+                    setIncludeDuplicates(event.target.checked)
+                  }
+                />
+                Include possible duplicates
+              </label>
               <Button
                 onClick={() => void confirmImport()}
                 disabled={
                   !preview.rows.some(
                     (row) =>
-                      !row.duplicate &&
+                      (includeDuplicates || !row.duplicate) &&
                       (row.kind === "income" || row.kind === "expense"),
                   )
                 }
