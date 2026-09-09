@@ -45,8 +45,27 @@ export function Dashboard({
   const [projectFilter, setProjectFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [notifications, setNotifications] = useState<
-    { id: string; name: string; nextRun: string }[]
+    {
+      id: string;
+      type: string;
+      name?: string;
+      nextRun?: string;
+      email?: string;
+      rowCount?: number;
+    }[]
   >([]);
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      setDismissed(
+        JSON.parse(
+          localStorage.getItem("expense-book:dismissed-notifications") ?? "[]",
+        ),
+      );
+    } catch {
+      setDismissed([]);
+    }
+  }, []);
   const canLoad = !authConfigured || signedIn;
   const refresh = useCallback(async () => {
     if (!selected) return;
@@ -97,9 +116,16 @@ export function Dashboard({
     setExplanation(null);
     Promise.all([
       api<GroupDetail>(`/groups/${selected}`),
-      api<{ notifications: { id: string; name: string; nextRun: string }[] }>(
-        `/groups/${selected}/notifications`,
-      ),
+      api<{
+        notifications: {
+          id: string;
+          type: string;
+          name?: string;
+          nextRun?: string;
+          email?: string;
+          rowCount?: number;
+        }[];
+      }>(`/groups/${selected}/notifications`),
     ])
       .then(([result, feed]) => {
         if (active) {
@@ -324,26 +350,70 @@ export function Dashboard({
             {error}
           </div>
         )}
-        {group && notifications.length > 0 && (
-          <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
-            <div className="flex items-center gap-2 font-medium">
-              <Bell size={16} /> Upcoming reminders
-            </div>
-            <ul className="mt-2 space-y-1 text-sm">
-              {notifications.map((notice) => (
-                <li key={notice.id}>
-                  <a
-                    className="underline"
-                    href={`/groups/${group.id}/recurring`}
-                  >
-                    {notice.name}
-                  </a>{" "}
-                  is due on {notice.nextRun}.
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {group &&
+          notifications.filter(
+            (notice) => !dismissed.includes(`${notice.type}:${notice.id}`),
+          ).length > 0 && (
+            <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+              <div className="flex items-center gap-2 font-medium">
+                <Bell size={16} /> Notifications (
+                {
+                  notifications.filter(
+                    (notice) =>
+                      !dismissed.includes(`${notice.type}:${notice.id}`),
+                  ).length
+                }
+                )
+              </div>
+              <ul className="mt-2 space-y-1 text-sm">
+                {notifications
+                  .filter(
+                    (notice) =>
+                      !dismissed.includes(`${notice.type}:${notice.id}`),
+                  )
+                  .map((notice) => (
+                    <li
+                      key={`${notice.type}:${notice.id}`}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <span>
+                        {notice.type === "recurring_due" ? (
+                          <>
+                            <a
+                              className="underline"
+                              href={`/groups/${group.id}/recurring`}
+                            >
+                              {notice.name}
+                            </a>{" "}
+                            is due on {notice.nextRun}.
+                          </>
+                        ) : notice.type === "draft_review" ? (
+                          <>A draft is waiting for review.</>
+                        ) : notice.type === "invitation_pending" ? (
+                          <>Invitation pending for {notice.email}.</>
+                        ) : (
+                          <>Import created {notice.rowCount} review drafts.</>
+                        )}
+                      </span>
+                      <button
+                        className="text-xs underline"
+                        onClick={() => {
+                          const key = `${notice.type}:${notice.id}`;
+                          const next = [...dismissed, key];
+                          setDismissed(next);
+                          localStorage.setItem(
+                            "expense-book:dismissed-notifications",
+                            JSON.stringify(next),
+                          );
+                        }}
+                      >
+                        Dismiss
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          )}
         {!canLoad && (
           <section className="rounded-2xl border border-stone-200 bg-white p-10">
             <h2 className="text-2xl font-semibold">

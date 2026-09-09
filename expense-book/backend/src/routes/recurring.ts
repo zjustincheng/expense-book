@@ -2,7 +2,12 @@ import { and, asc, eq, lte } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Database } from "../db/client.js";
-import { recurringTransactions } from "../db/schema.js";
+import {
+  drafts,
+  importBatches,
+  invitations,
+  recurringTransactions,
+} from "../db/schema.js";
 import { entryInput } from "../domain/ledger.js";
 import { json } from "../lib/json.js";
 import { fail } from "../lib/errors.js";
@@ -172,8 +177,43 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         ),
       )
       .orderBy(asc(recurringTransactions.nextRun));
+    const [draftRows, invitationRows, importRows] = await Promise.all([
+      db
+        .select({ id: drafts.id, updatedAt: drafts.updatedAt })
+        .from(drafts)
+        .where(and(eq(drafts.groupId, groupId), eq(drafts.state, "draft")))
+        .limit(5),
+      db
+        .select({ id: invitations.id, email: invitations.email })
+        .from(invitations)
+        .where(
+          and(
+            eq(invitations.groupId, groupId),
+            eq(invitations.state, "pending"),
+          ),
+        )
+        .limit(5),
+      db
+        .select({
+          id: importBatches.id,
+          rowCount: importBatches.rowCount,
+          createdAt: importBatches.createdAt,
+        })
+        .from(importBatches)
+        .where(eq(importBatches.groupId, groupId))
+        .orderBy(asc(importBatches.createdAt))
+        .limit(3),
+    ]);
     return {
-      notifications: due.map((row) => ({ type: "recurring_due", ...row })),
+      notifications: [
+        ...due.map((row) => ({ type: "recurring_due", ...row })),
+        ...draftRows.map((row) => ({ type: "draft_review", ...row })),
+        ...invitationRows.map((row) => ({
+          type: "invitation_pending",
+          ...row,
+        })),
+        ...importRows.map((row) => ({ type: "import_complete", ...row })),
+      ],
     };
   });
 }
