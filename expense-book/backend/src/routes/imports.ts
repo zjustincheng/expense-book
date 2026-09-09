@@ -52,12 +52,21 @@ export function registerImportRoutes(app: FastifyInstance, db: Database) {
             z.object({
               date: z.iso.date(),
               description: z.string().trim().min(1).max(300),
-              kind: z.enum(["income", "expense"]),
+              kind: z.enum([
+                "income",
+                "expense",
+                "obligation",
+                "transfer",
+                "settlement",
+                "adjustment",
+              ]),
               amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
               project: z.string().max(80).optional(),
               category: z.string().max(80).optional(),
-              cashMemberId: z.string().uuid(),
-              splitMemberIds: z.array(z.string().uuid()).min(1).max(100),
+              cashMemberId: z.string().uuid().optional(),
+              splitMemberIds: z.array(z.string().uuid()).max(100).optional(),
+              fromMemberId: z.string().uuid().optional(),
+              toMemberId: z.string().uuid().optional(),
             }),
           )
           .min(1)
@@ -66,16 +75,31 @@ export function registerImportRoutes(app: FastifyInstance, db: Database) {
       .parse(request.body);
     const results = [];
     for (const row of body.rows) {
-      const input = {
-        kind: row.kind,
-        date: row.date,
-        description: row.description,
-        expression: row.amount,
-        cash: [{ memberId: row.cashMemberId, amount: minorUnits(row.amount) }],
-        split: { method: "equal" as const, members: row.splitMemberIds },
-        ...(row.project ? { project: row.project } : {}),
-        ...(row.category ? { category: row.category } : {}),
-      };
+      const input =
+        row.kind === "income" || row.kind === "expense"
+          ? {
+              kind: row.kind,
+              date: row.date,
+              description: row.description,
+              expression: row.amount,
+              cash: [
+                { memberId: row.cashMemberId!, amount: minorUnits(row.amount) },
+              ],
+              split: {
+                method: "equal" as const,
+                members: row.splitMemberIds ?? [],
+              },
+              ...(row.project ? { project: row.project } : {}),
+              ...(row.category ? { category: row.category } : {}),
+            }
+          : {
+              kind: row.kind,
+              date: row.date,
+              description: row.description,
+              expression: row.amount,
+              fromMemberId: row.fromMemberId!,
+              toMemberId: row.toMemberId!,
+            };
       results.push(
         await changeDraft(
           db,
