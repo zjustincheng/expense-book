@@ -22,7 +22,7 @@ const recurringInput = z.object({
   frequency: z.enum(["weekly", "monthly", "quarterly", "yearly"]),
   nextRun: z.iso.date(),
 });
-function advanceDate(date: string, frequency: string) {
+export function advanceDate(date: string, frequency: string) {
   const value = new Date(`${date}T00:00:00Z`);
   if (frequency === "weekly") value.setUTCDate(value.getUTCDate() + 7);
   if (frequency === "monthly") value.setUTCMonth(value.getUTCMonth() + 1);
