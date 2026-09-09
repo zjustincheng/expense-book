@@ -55,6 +55,26 @@ export function Dashboard({
     }[]
   >([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const [notificationPreferences, setNotificationPreferences] = useState<
+    Record<string, boolean>
+  >({
+    recurring_due: true,
+    draft_review: true,
+    invitation_pending: true,
+    import_complete: true,
+  });
+  useEffect(() => {
+    try {
+      setNotificationPreferences((current) => ({
+        ...current,
+        ...JSON.parse(
+          localStorage.getItem("expense-book:notification-preferences") ?? "{}",
+        ),
+      }));
+    } catch {
+      /* defaults */
+    }
+  }, []);
   const [commandOpen, setCommandOpen] = useState(false);
   useEffect(() => {
     try {
@@ -438,7 +458,9 @@ export function Dashboard({
         )}
         {group &&
           notifications.filter(
-            (notice) => !dismissed.includes(`${notice.type}:${notice.id}`),
+            (notice) =>
+              notificationPreferences[notice.type] !== false &&
+              !dismissed.includes(`${notice.type}:${notice.id}`),
           ).length > 0 && (
             <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
               <div className="flex items-center gap-2 font-medium">
@@ -446,6 +468,7 @@ export function Dashboard({
                 {
                   notifications.filter(
                     (notice) =>
+                      notificationPreferences[notice.type] !== false &&
                       !dismissed.includes(`${notice.type}:${notice.id}`),
                   ).length
                 }
@@ -455,6 +478,7 @@ export function Dashboard({
                 {notifications
                   .filter(
                     (notice) =>
+                      notificationPreferences[notice.type] !== false &&
                       !dismissed.includes(`${notice.type}:${notice.id}`),
                   )
                   .map((notice) => (
