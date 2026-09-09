@@ -983,8 +983,8 @@ export function Dashboard({
                               {money(entry.amount, group.currency)}
                             </p>
                           </div>
-                          <details className="mt-2 text-xs text-stone-500">
-                            <summary className="cursor-pointer font-medium text-emerald-800">
+                          <details className="mt-2 basis-full min-w-0 text-xs text-stone-500">
+                            <summary className="cursor-pointer whitespace-nowrap font-medium text-emerald-800">
                               View record details
                             </summary>
                             <p className="mt-2 text-stone-500">
