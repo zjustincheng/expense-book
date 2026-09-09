@@ -85,7 +85,12 @@ export function GroupSettings({ groupId }: { groupId: string }) {
   }, [groupId]);
   async function addLabel(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    if (pending) return;
+    setPending(true);
+    setError("");
+    setNotice("");
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     try {
       await api(
         `/groups/${groupId}/labels`,
@@ -93,10 +98,12 @@ export function GroupSettings({ groupId }: { groupId: string }) {
         crypto.randomUUID(),
       );
       setLabels(await api<typeof labels>(`/groups/${groupId}/labels`));
-      event.currentTarget.reset();
+      formElement.reset();
       setNotice("Label created.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to create label.");
+    } finally {
+      setPending(false);
     }
   }
   async function saveDefaultSplit(event: React.FormEvent<HTMLFormElement>) {
@@ -121,7 +128,8 @@ export function GroupSettings({ groupId }: { groupId: string }) {
   }
   async function createTemplate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const members = form.getAll("templateMember").map(String);
     if (!members.length) {
       setError("Choose at least one member for the template.");
@@ -137,7 +145,7 @@ export function GroupSettings({ groupId }: { groupId: string }) {
         },
         crypto.randomUUID(),
       );
-      event.currentTarget.reset();
+      formElement.reset();
       await loadTemplates();
       setNotice("Split template created.");
     } catch (e) {
@@ -159,7 +167,8 @@ export function GroupSettings({ groupId }: { groupId: string }) {
   }
   async function saveOpeningBalance(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     try {
       await api(
         `/groups/${groupId}/opening-balance`,
@@ -299,7 +308,7 @@ export function GroupSettings({ groupId }: { groupId: string }) {
                   <option value="category">Category</option>
                 </select>
               </label>
-              <Button>Create label</Button>
+              <Button>{pending ? "Saving…" : "Create label"}</Button>
             </form>
             <div className="mt-4 flex flex-wrap gap-2 text-sm">
               {[

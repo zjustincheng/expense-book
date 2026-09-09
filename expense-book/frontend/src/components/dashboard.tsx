@@ -396,7 +396,7 @@ export function Dashboard({
         id="overview"
         tabIndex={-1}
         aria-label="Expense Book workspace"
-        className="mx-auto w-full max-w-[1400px] px-5 py-8 sm:px-10 lg:py-12"
+        className="mx-auto min-w-0 w-full max-w-[1400px] px-5 py-8 sm:px-10 lg:py-12"
       >
         {commandOpen && group && (
           <div
@@ -485,7 +485,7 @@ export function Dashboard({
             </p>
           </div>
           {group && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={exportCsv}>
                 <Download size={16} />
                 Export
@@ -651,7 +651,7 @@ export function Dashboard({
                 Every member starts at zero. Choose at least two members.
                 Currency is fixed for this group.
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button disabled={loading}>Create group</Button>
                 <Button
                   type="button"

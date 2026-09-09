@@ -18,7 +18,9 @@ test("creates a zero-balance group, previews income, and records a partial settl
   ).toBeVisible();
   await expect(page.getByText("Everyone is settled up.")).toBeVisible();
   await page.getByRole("button", { name: "Add record" }).click();
-  await page.getByLabel("Record type").selectOption("income");
+  await page
+    .getByRole("combobox", { name: "Record type", exact: true })
+    .selectOption("income");
   await page.getByLabel("Amount (USD)").fill("1000");
   await page
     .getByLabel("Description", { exact: true })
@@ -37,7 +39,9 @@ test("creates a zero-balance group, previews income, and records a partial settl
   await page.getByRole("button", { name: "Why this balance?" }).first().click();
   await expect(page.getByText(/balance explained/)).toBeVisible();
   await page.getByRole("button", { name: "Add record" }).click();
-  await page.getByLabel("Record type").selectOption("settlement");
+  await page
+    .getByRole("combobox", { name: "Record type", exact: true })
+    .selectOption("settlement");
   await page.getByLabel("Amount (USD)").fill("250");
   await page.getByLabel("Description", { exact: true }).fill("Partial payment");
   await page
