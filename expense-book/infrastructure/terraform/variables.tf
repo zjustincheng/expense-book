@@ -84,3 +84,8 @@ variable "vpc_cidr" {
   default     = "10.42.0.0/16"
   description = "CIDR block for the managed VPC."
 }
+variable "github_repository" {
+  type        = string
+  default     = null
+  description = "GitHub owner/repository allowed to assume the deployment role (for example zjustincheng/expense-book)."
+}

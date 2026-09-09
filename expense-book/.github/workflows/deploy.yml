@@ -1,0 +1,56 @@
+name: Deploy to ECS
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  id-token: write
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+  ENVIRONMENT: ${{ vars.ENVIRONMENT }}
+  NAME_PREFIX: ${{ vars.NAME_PREFIX }}
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+      - name: Build and push images
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          docker build -f frontend/Dockerfile -t "$REGISTRY/$NAME_PREFIX-$ENVIRONMENT/frontend:${GITHUB_SHA}" .
+          docker build -f backend/Dockerfile -t "$REGISTRY/$NAME_PREFIX-$ENVIRONMENT/backend:${GITHUB_SHA}" .
+          docker push "$REGISTRY/$NAME_PREFIX-$ENVIRONMENT/frontend:${GITHUB_SHA}"
+          docker push "$REGISTRY/$NAME_PREFIX-$ENVIRONMENT/backend:${GITHUB_SHA}"
+      - uses: aws-actions/amazon-ecs-render-task-definition@v1
+        id: render-frontend
+        with:
+          task-definition: ${{ vars.FRONTEND_TASK_DEFINITION }}
+          container-name: frontend
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}/frontend:${{ github.sha }}
+      - uses: aws-actions/amazon-ecs-render-task-definition@v1
+        id: render-backend
+        with:
+          task-definition: ${{ vars.BACKEND_TASK_DEFINITION }}
+          container-name: backend
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}/backend:${{ github.sha }}
+      - uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-frontend.outputs.task-definition }}
+          service: ${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}-frontend
+          cluster: ${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}
+          wait-for-service-stability: true
+      - uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-backend.outputs.task-definition }}
+          service: ${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}-backend
+          cluster: ${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}
+          wait-for-service-stability: true

@@ -19,3 +19,4 @@ output "network_vpc_id" { value = local.network_vpc_id }
 output "network_private_subnet_ids" { value = local.network_private_ids }
 output "network_public_subnet_ids" { value = local.network_public_ids }
 output "network_ecs_security_group_id" { value = local.network_ecs_sg_id }
+output "github_deploy_role_arn" { value = var.github_repository == null ? null : aws_iam_role.github_deploy[0].arn }
