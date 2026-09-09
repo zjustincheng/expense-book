@@ -67,6 +67,12 @@ export async function api<T>(
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   const data = await response.json();
+  if (response.status === 401 && typeof window !== "undefined") {
+    const returnTo = `${window.location.pathname}${window.location.search}`;
+    window.location.assign(
+      `/auth/login?returnTo=${encodeURIComponent(returnTo)}`,
+    );
+  }
   if (!response.ok)
     throw new ApiError(data.error ?? "Request failed.", response.status);
   return data as T;
