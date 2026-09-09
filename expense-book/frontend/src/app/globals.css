@@ -55,6 +55,11 @@ textarea {
   background: white;
   font: inherit;
 }
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  padding: 0;
+}
 input:focus,
 select:focus,
 textarea:focus {
