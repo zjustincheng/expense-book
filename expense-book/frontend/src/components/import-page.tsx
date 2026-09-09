@@ -23,12 +23,20 @@ export function ImportPage({ groupId }: { groupId: string }) {
   const [payer, setPayer] = useState("");
   const [confirmed, setConfirmed] = useState(0);
   const [includeDuplicates, setIncludeDuplicates] = useState(false);
+  const [history, setHistory] = useState<
+    { id: string; createdBy: string; rowCount: number; createdAt: string }[]
+  >([]);
   useEffect(() => {
     api<GroupDetail>(`/groups/${groupId}`)
       .then((value) => {
         setGroup(value);
         setPayer(value.members.find((member) => !member.archivedAt)?.id ?? "");
       })
+      .catch(() => undefined);
+  }, [groupId]);
+  useEffect(() => {
+    api<typeof history>(`/groups/${groupId}/import/history`)
+      .then(setHistory)
       .catch(() => undefined);
   }, [groupId]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -74,6 +82,9 @@ export function ImportPage({ groupId }: { groupId: string }) {
         crypto.randomUUID(),
       );
       setConfirmed(result.count);
+      setHistory(
+        await api<typeof history>(`/groups/${groupId}/import/history`),
+      );
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Unable to create import drafts.",
@@ -227,6 +238,31 @@ export function ImportPage({ groupId }: { groupId: string }) {
               </Button>
             </div>
           )}
+        </section>
+      )}
+      {history.length > 0 && (
+        <section className="rounded-2xl border border-stone-200 bg-white p-5">
+          <h2 className="font-semibold">Import history</h2>
+          <div className="mt-3 divide-y divide-stone-100 text-sm">
+            {history
+              .slice()
+              .reverse()
+              .map((batch) => (
+                <div
+                  key={batch.id}
+                  className="flex flex-wrap justify-between gap-2 py-3"
+                >
+                  <span>
+                    {batch.rowCount} draft{batch.rowCount === 1 ? "" : "s"}{" "}
+                    created
+                  </span>
+                  <span className="text-stone-500">
+                    {new Date(batch.createdAt).toLocaleString()} ·{" "}
+                    {batch.createdBy}
+                  </span>
+                </div>
+              ))}
+          </div>
         </section>
       )}
     </main>
