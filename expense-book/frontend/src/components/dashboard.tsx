@@ -422,7 +422,7 @@ export function Dashboard({
                     enabled: group.role !== "viewer",
                   },
                   {
-                    label: "Open reports",
+                    label: "Reports & activity",
                     href: `/groups/${group.id}/reports`,
                   },
                   {
@@ -496,10 +496,9 @@ export function Dashboard({
                 </Button>
               )}
               <Button asChild variant="outline">
-                <a href={`/groups/${group.id}/reports`}>Reports</a>
-              </Button>
-              <Button asChild variant="outline">
-                <a href={`/groups/${group.id}/search`}>Search</a>
+                <a href={`/groups/${group.id}/reports`}>
+                  Reports &amp; activity
+                </a>
               </Button>
               <Button asChild variant="outline">
                 <a href={`/groups/${group.id}/recurring`}>Recurring</a>
