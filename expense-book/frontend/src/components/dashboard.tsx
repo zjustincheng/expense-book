@@ -281,7 +281,8 @@ export function Dashboard({
           entry.amount,
         ]),
     ];
-    const safe = (value: string) => `"${value.replaceAll('"', '""')}"`;
+    const safe = (value: string) =>
+      `"${(/^[=+\-@\t\r]/.test(value) ? "'" : "") + value.replaceAll('"', '""')}"`;
     const url = URL.createObjectURL(
       new Blob([rows.map((row) => row.map(safe).join(",")).join("\r\n")], {
         type: "text/csv",
