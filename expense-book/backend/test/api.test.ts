@@ -138,6 +138,19 @@ describe("authenticated financial API", () => {
     });
     expect(changed.statusCode).toBe(409);
   });
+  it("reports totals across the complete filtered result", async () => {
+    const response = await app.inject({
+      url: `${groupPath()}/reports?page=1&pageSize=1`,
+      headers,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      count: 1,
+      pageCount: 1,
+      totalPages: 1,
+      totals: { income: "100000" },
+    });
+  });
   it("invalidates an old preview after another write", async () => {
     const command = {
       action: "post",
