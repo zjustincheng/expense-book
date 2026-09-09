@@ -8,6 +8,7 @@ variable "frontend_image" {
 }
 variable "ecs_security_group_id" {
   type        = string
+  default     = null
   description = "Security group assigned to ECS tasks."
 }
 
@@ -46,8 +47,8 @@ resource "aws_ecs_service" "backend" {
   desired_count   = var.environment == "production" ? 2 : 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets          = var.private_subnet_ids
-    security_groups  = [var.ecs_security_group_id]
+    subnets          = local.network_private_ids
+    security_groups  = [local.network_ecs_sg_id]
     assign_public_ip = false
   }
   service_registries {
@@ -79,8 +80,8 @@ resource "aws_ecs_service" "frontend" {
   desired_count   = var.environment == "production" ? 2 : 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets          = var.private_subnet_ids
-    security_groups  = [var.ecs_security_group_id]
+    subnets          = local.network_private_ids
+    security_groups  = [local.network_ecs_sg_id]
     assign_public_ip = false
   }
   load_balancer {
