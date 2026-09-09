@@ -15,4 +15,5 @@ COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/package.json ./backend/package.json
 COPY --from=build /app/backend/drizzle ./backend/drizzle
 EXPOSE 4000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD wget -q -O - http://localhost:4000/health || exit 1
 CMD ["sh", "-c", "node backend/dist/db/migrate.js && node backend/dist/server.js"]
