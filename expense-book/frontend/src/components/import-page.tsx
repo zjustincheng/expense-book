@@ -23,6 +23,8 @@ export function ImportPage({ groupId }: { groupId: string }) {
   const [payer, setPayer] = useState("");
   const [rowPayers, setRowPayers] = useState<Record<number, string>>({});
   const [splitMembers, setSplitMembers] = useState<string[]>([]);
+  const [transferFrom, setTransferFrom] = useState("");
+  const [transferTo, setTransferTo] = useState("");
   const [confirmed, setConfirmed] = useState(0);
   const [includeDuplicates, setIncludeDuplicates] = useState(false);
   const [history, setHistory] = useState<
@@ -33,6 +35,10 @@ export function ImportPage({ groupId }: { groupId: string }) {
       .then((value) => {
         setGroup(value);
         setPayer(value.members.find((member) => !member.archivedAt)?.id ?? "");
+        const first =
+          value.members.find((member) => !member.archivedAt)?.id ?? "";
+        setTransferFrom(first);
+        setTransferTo(first);
         setSplitMembers(
           value.members
             .filter((member) => !member.archivedAt)
@@ -85,9 +91,16 @@ export function ImportPage({ groupId }: { groupId: string }) {
             .filter(
               (row) =>
                 (includeDuplicates || !row.duplicate) &&
-                (row.kind === "income" || row.kind === "expense"),
+                (row.kind === "income" ||
+                  row.kind === "expense" ||
+                  (transferFrom && transferTo && transferFrom !== transferTo)),
             )
-            .map((row) => ({ ...row, cashMemberId: payer, splitMemberIds })),
+            .map((row) => ({
+              ...row,
+              splitMemberIds,
+              fromMemberId: transferFrom,
+              toMemberId: transferTo,
+            })),
         },
         crypto.randomUUID(),
       );
@@ -285,6 +298,38 @@ export function ImportPage({ groupId }: { groupId: string }) {
                     </label>
                   ))}
               </div>
+              <div className="flex flex-wrap items-end gap-3 text-sm">
+                <label>
+                  From for direct rows
+                  <select
+                    value={transferFrom}
+                    onChange={(event) => setTransferFrom(event.target.value)}
+                  >
+                    {group.members
+                      .filter((member) => !member.archivedAt)
+                      .map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label>
+                  To
+                  <select
+                    value={transferTo}
+                    onChange={(event) => setTransferTo(event.target.value)}
+                  >
+                    {group.members
+                      .filter((member) => !member.archivedAt)
+                      .map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </div>
               <Button
                 onClick={() => void confirmImport()}
                 disabled={
@@ -292,7 +337,11 @@ export function ImportPage({ groupId }: { groupId: string }) {
                   !preview.rows.some(
                     (row) =>
                       (includeDuplicates || !row.duplicate) &&
-                      (row.kind === "income" || row.kind === "expense"),
+                      (row.kind === "income" ||
+                        row.kind === "expense" ||
+                        (transferFrom &&
+                          transferTo &&
+                          transferFrom !== transferTo)),
                   )
                 }
               >
