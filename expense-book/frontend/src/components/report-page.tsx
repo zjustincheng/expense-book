@@ -8,6 +8,7 @@ type Report = {
   totals: Record<string, string>;
   count: number;
   page?: number;
+  totalPages?: number;
   hasMore?: boolean;
 };
 const kinds = [
@@ -399,7 +400,8 @@ export function ReportPage({
         <>
           <div id="report-results" tabIndex={-1} />
           <p className="text-sm text-stone-500">
-            {report.count} matching records · page {report.page ?? page}
+            {report.count} matching records · page {report.page ?? page} of{" "}
+            {report.totalPages ?? 1}
           </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {kinds

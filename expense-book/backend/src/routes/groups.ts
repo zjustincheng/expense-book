@@ -210,6 +210,10 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
           totals: Object.fromEntries(totals),
           count: aggregateRows.length,
           pageCount: rows.length,
+          totalPages: Math.max(
+            1,
+            Math.ceil(aggregateRows.length / query.pageSize),
+          ),
           page: query.page,
           pageSize: query.pageSize,
           hasMore,
