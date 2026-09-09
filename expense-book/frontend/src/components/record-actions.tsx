@@ -276,6 +276,7 @@ export function RecordDetails({
                   if (!file) return;
                   setUploading(true);
                   setError("");
+                  let createdId: string | undefined;
                   try {
                     const created = await api<{
                       id: string;
@@ -285,6 +286,7 @@ export function RecordDetails({
                       contentType: file.type,
                       size: file.size,
                     });
+                    createdId = created.id;
                     const response = await fetch(created.uploadUrl, {
                       method: "PUT",
                       headers: { "Content-Type": file.type },
@@ -298,6 +300,14 @@ export function RecordDetails({
                       ),
                     );
                   } catch (e) {
+                    if (createdId) {
+                      await api(
+                        `/groups/${group.id}/attachments/${createdId}`,
+                        undefined,
+                        crypto.randomUUID(),
+                        "DELETE",
+                      ).catch(() => undefined);
+                    }
                     setError(
                       e instanceof Error
                         ? e.message
