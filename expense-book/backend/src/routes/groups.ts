@@ -266,7 +266,13 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
       .orderBy(desc(entries.date), desc(entries.createdAt))
       .limit(500);
     return json({
-      member,
+      member: {
+        ...member,
+        outstanding: rows.reduce(
+          (sum, row) => sum + outstanding(row.effect),
+          0n,
+        ),
+      },
       records: rows.map((row) => ({ ...row.entry, effect: row.effect })),
     });
   });
