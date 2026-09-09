@@ -22,6 +22,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [payer, setPayer] = useState("");
   const [rowPayers, setRowPayers] = useState<Record<number, string>>({});
+  const [splitMembers, setSplitMembers] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(0);
   const [includeDuplicates, setIncludeDuplicates] = useState(false);
   const [history, setHistory] = useState<
@@ -32,6 +33,11 @@ export function ImportPage({ groupId }: { groupId: string }) {
       .then((value) => {
         setGroup(value);
         setPayer(value.members.find((member) => !member.archivedAt)?.id ?? "");
+        setSplitMembers(
+          value.members
+            .filter((member) => !member.archivedAt)
+            .map((member) => member.id),
+        );
       })
       .catch(() => undefined);
   }, [groupId]);
@@ -66,9 +72,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
   }
   async function confirmImport() {
     if (!preview || !group || !payer) return;
-    const splitMemberIds = group.members
-      .filter((member) => !member.archivedAt)
-      .map((member) => member.id);
+    const splitMemberIds = splitMembers;
     try {
       const result = await api<{ count: number }>(
         `/groups/${groupId}/import/confirm`,
@@ -260,9 +264,31 @@ export function ImportPage({ groupId }: { groupId: string }) {
                 />
                 Include possible duplicates
               </label>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-medium">Shared by:</span>
+                {group.members
+                  .filter((member) => !member.archivedAt)
+                  .map((member) => (
+                    <label key={member.id} className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={splitMembers.includes(member.id)}
+                        onChange={(event) =>
+                          setSplitMembers(
+                            event.target.checked
+                              ? [...splitMembers, member.id]
+                              : splitMembers.filter((id) => id !== member.id),
+                          )
+                        }
+                      />
+                      {member.name}
+                    </label>
+                  ))}
+              </div>
               <Button
                 onClick={() => void confirmImport()}
                 disabled={
+                  splitMembers.length === 0 ||
                   !preview.rows.some(
                     (row) =>
                       (includeDuplicates || !row.duplicate) &&
