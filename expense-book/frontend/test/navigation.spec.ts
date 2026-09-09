@@ -14,7 +14,13 @@ test("group tools load, empty reports export, and CSV imports create review draf
     .getByLabel("Member names, separated by commas")
     .fill("Alex, Jordan");
   await page.getByRole("button", { name: "Create group", exact: true }).click();
-  const reportLink = page.getByRole("link", { name: "Reports", exact: true });
+  const reportLink = page.getByRole("link", {
+    name: "Reports & activity",
+    exact: true,
+  });
+  await expect(
+    page.getByRole("link", { name: "Search", exact: true }),
+  ).toHaveCount(0);
   await expect(reportLink).toBeVisible();
   const path = (await reportLink.getAttribute("href"))!.replace(
     /\/reports$/,
@@ -26,8 +32,9 @@ test("group tools load, empty reports export, and CSV imports create review draf
   await page.getByRole("button", { name: "Export all", exact: true }).click();
   expect((await download).suggestedFilename()).toContain("report.csv");
   await page.goto(`${path}/search`);
+  await expect(page).toHaveURL(new RegExp(`${path}/reports$`));
   await expect(
-    page.getByRole("heading", { name: "Search activity" }),
+    page.getByRole("heading", { name: "Reports & activity" }),
   ).toBeVisible();
   await page.goto(`${path}/recurring`);
   await expect(page.getByText("No upcoming schedules.")).toBeVisible();
