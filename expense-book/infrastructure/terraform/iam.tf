@@ -8,9 +8,12 @@ data "aws_iam_policy_document" "ecs_tasks_assume" {
   }
 }
 resource "aws_iam_role" "ecs_execution" {
-  name                = "${local.name}-ecs-execution"
-  assume_role_policy  = data.aws_iam_policy_document.ecs_tasks_assume.json
-  managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
+  name               = "${local.name}-ecs-execution"
+  assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume.json
+}
+resource "aws_iam_role_policy_attachment" "ecs_execution" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 resource "aws_iam_role" "backend_runtime" {
   name               = "${local.name}-backend-runtime"
