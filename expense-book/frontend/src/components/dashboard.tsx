@@ -938,7 +938,7 @@ export function Dashboard({
                               )
                             }
                           />
-                          <div className="flex items-start justify-between gap-4">
+                          <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
                             <div className="min-w-0">
                               <p className="break-words text-sm font-medium">
                                 {entry.description}
