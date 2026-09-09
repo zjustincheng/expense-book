@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Database } from "../db/client.js";
-import { entries } from "../db/schema.js";
+import { entries, importBatches } from "../db/schema.js";
 import { authorize } from "../services/access.js";
 import { parseImportCsv } from "../services/csv-import.js";
 import { changeDraft } from "../services/drafts.js";
@@ -86,6 +86,21 @@ export function registerImportRoutes(app: FastifyInstance, db: Database) {
         ),
       );
     }
-    return reply.code(201).send({ drafts: results, count: results.length });
+    const [batch] = await db
+      .insert(importBatches)
+      .values({ groupId, createdBy: request.subject, rowCount: results.length })
+      .returning({ id: importBatches.id, createdAt: importBatches.createdAt });
+    return reply
+      .code(201)
+      .send({ batch, drafts: results, count: results.length });
+  });
+  app.get("/groups/:groupId/import/history", async (request) => {
+    const { groupId } = params.parse(request.params);
+    await authorize(db, groupId, request.subject);
+    return db
+      .select()
+      .from(importBatches)
+      .where(eq(importBatches.groupId, groupId))
+      .orderBy(importBatches.createdAt);
   });
 }
