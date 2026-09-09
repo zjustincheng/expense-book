@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntryFields, readEntryFields } from "@/components/entry-fields";
@@ -26,12 +26,27 @@ export function EntryForm({
   const [saving, setSaving] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [closing, setClosing] = useState(false);
   const draftAttempt = useRef<{ command: unknown; key: string } | null>(null);
   const draftVersion = useRef(draft?.version);
   const busy = useRef(false);
   const pending = saving || operation.pending;
   const locked =
     pending || uncertain || operation.uncertain || saved || operation.committed;
+  const hasUnfinishedWork =
+    !saved &&
+    !operation.committed &&
+    (dirty || uncertain || operation.uncertain);
+  useEffect(() => {
+    if (!hasUnfinishedWork) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [hasUnfinishedWork]);
   async function finish() {
     try {
       await onSaved();
@@ -45,6 +60,7 @@ export function EntryForm({
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy.current || pending) return;
+    setClosing(false);
     setError("");
     if (operation.preview) {
       if (await operation.confirm()) await finish();
@@ -137,13 +153,36 @@ export function EntryForm({
         </h2>
         <Button
           variant="ghost"
-          onClick={onClose}
+          onClick={() => (dirty ? setClosing(true) : onClose())}
           disabled={locked}
           aria-label="Close entry form"
         >
           <X size={18} />
         </Button>
       </div>
+      {closing && (
+        <div
+          className="mb-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4"
+          role="alert"
+        >
+          <p className="text-sm">
+            Close without saving these edits? Keep editing to save a draft or
+            finish posting.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setClosing(false)}
+            >
+              Keep editing
+            </Button>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Close without saving
+            </Button>
+          </div>
+        </div>
+      )}
       {correction && (
         <p className="mb-4 text-sm text-stone-500">
           The original record stays in history. Confirmation reverses it and
@@ -160,7 +199,11 @@ export function EntryForm({
         onSubmit={submit}
         className="space-y-5"
         onChange={() => {
-          if (!locked) draftAttempt.current = null;
+          if (!locked) {
+            draftAttempt.current = null;
+            setDirty(true);
+            setClosing(false);
+          }
         }}
       >
         <fieldset
@@ -188,6 +231,8 @@ export function EntryForm({
         {(error || operation.error) && (
           <p role="alert" className="text-sm text-red-700">
             {error || operation.error}
+            {!locked &&
+              " Your entries are still here. Check the details and try again."}
           </p>
         )}
         <div className="flex flex-wrap justify-end gap-2">

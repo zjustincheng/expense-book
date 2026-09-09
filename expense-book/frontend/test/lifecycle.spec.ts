@@ -328,3 +328,102 @@ test("a lost draft response retries without creating a second draft", async ({
   expect(drafts[0].input.expression).toBe("12.34");
   expect((await request(page, `/groups/${id}`)).entries).toHaveLength(0);
 });
+
+test("entry guidance, unsaved edits, failed previews and lost confirmations recover safely", async ({
+  page,
+}) => {
+  const id = await workspace(page);
+  const form = await newExpense(page, "Recovery dinner", "80");
+  await expect(form.getByText(/Use for a shared purchase/)).toBeVisible();
+  await form
+    .getByRole("combobox", { name: "Record type", exact: true })
+    .selectOption("settlement");
+  await expect(form.getByText(/payment already made to settle/)).toBeVisible();
+  await form
+    .getByRole("combobox", { name: "Record type", exact: true })
+    .selectOption("expense");
+  await form.getByRole("button", { name: "Close entry form" }).click();
+  await expect(
+    form.getByText(/Close without saving these edits/),
+  ).toBeVisible();
+  await form.getByRole("button", { name: "Keep editing" }).click();
+  await expect(form.getByLabel("Description", { exact: true })).toHaveValue(
+    "Recovery dinner",
+  );
+  await page.route(
+    `**/api/groups/${id}/preview`,
+    async (route) => {
+      await route.fulfill({
+        status: 502,
+        contentType: "text/html",
+        body: "<html>Bad gateway</html>",
+      });
+    },
+    { times: 1 },
+  );
+  await form.getByRole("button", { name: "Preview balance changes" }).click();
+  await expect(form.getByRole("alert")).toContainText(
+    "temporarily unavailable",
+  );
+  await expect(form.getByLabel("Amount (USD)", { exact: true })).toHaveValue(
+    "80",
+  );
+  await form.getByRole("button", { name: "Preview balance changes" }).click();
+  await expect(
+    form.getByRole("heading", { name: /Review balance changes/ }),
+  ).toBeVisible();
+  // The server commits but the proxy loses its response. Retry must reuse the write key.
+  await page.route(
+    `**/api/groups/${id}/entries`,
+    async (route) => {
+      const response = await route.fetch();
+      expect(response.status()).toBe(201);
+      await route.fulfill({
+        status: 200,
+        body: "",
+        contentType: "application/json",
+      });
+    },
+    { times: 1 },
+  );
+  await form.getByRole("button", { name: "Confirm and post" }).click();
+  await expect(form.getByRole("alert")).toContainText(
+    "result could not be confirmed",
+  );
+  await expect(
+    form.getByRole("button", { name: "Close entry form" }),
+  ).toBeDisabled();
+  await form.getByRole("button", { name: "Retry confirmation" }).click();
+  await expect(form).not.toBeVisible();
+  expect((await request(page, `/groups/${id}`)).entries).toHaveLength(1);
+
+  const inbox = page.getByRole("region", {
+    name: "Needs attention",
+    exact: true,
+  });
+  await inbox
+    .getByRole("button", { name: "Uncategorized", exact: true })
+    .click();
+  await expect(
+    inbox.getByText("Recovery dinner", { exact: true }),
+  ).toBeVisible();
+  await inbox
+    .getByRole("button", { name: "Expenses without attachments", exact: true })
+    .click();
+  await expect(
+    inbox.getByText("Recovery dinner", { exact: true }),
+  ).toBeVisible();
+  await inbox.getByText("Review record", { exact: true }).click();
+  await inbox
+    .getByRole("button", { name: "Show member balance changes" })
+    .click();
+  await expect(
+    inbox.getByRole("heading", { name: "Attachments", exact: true }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});

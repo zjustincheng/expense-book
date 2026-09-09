@@ -9,6 +9,7 @@ import { createAuthenticator } from "../src/auth.js";
 import * as schema from "../src/db/schema.js";
 
 let app: Awaited<ReturnType<typeof createApp>>;
+let db: Database;
 let closeDatabase: () => Promise<void>;
 let groupId = "";
 let memberIds: string[] = [];
@@ -25,7 +26,6 @@ const incomeInput = () => ({
 });
 
 beforeAll(async () => {
-  let db: Database;
   let execute: (sql: string) => Promise<unknown>;
   if (process.env.TEST_DATABASE_URL) {
     const connection = (await import("../src/db/client.js")).connectDatabase(
@@ -292,4 +292,131 @@ it("refuses development authentication in production or on public interfaces", (
     createAuthenticator({ AUTH_MODE: "development", HOST: "0.0.0.0" }),
   ).toThrow();
   expect(() => createAuthenticator({})).toThrow();
+});
+
+it("attention queues paginate, exclude reversed and attached expenses, and enforce group access", async () => {
+  const created = await app.inject({
+    method: "POST",
+    url: "/api/groups",
+    headers,
+    payload: {
+      name: "Review queue",
+      currency: "USD",
+      members: ["Alex", "Jordan"],
+    },
+  });
+  const id = created.json().id;
+  const reviewMembers = (
+    await app.inject({ url: `/api/groups/${id}`, headers })
+  ).json().members as { id: string }[];
+  const reviewMemberIds = reviewMembers.map((member) => member.id);
+  const rows: { id: string }[] = [];
+  for (let index = 0; index < 23; index += 1) {
+    const kind = index === 22 ? "income" : "expense";
+    const input = {
+      kind,
+      description: `Review ${index}`,
+      date: "2026-09-08",
+      expression: "1",
+      cash: [{ memberId: reviewMemberIds[0]!, amount: "100" }],
+      split: { method: "equal" as const, members: reviewMemberIds },
+      ...(index === 21 ? { category: "Food" } : {}),
+    };
+    const preview = await app.inject({
+      method: "POST",
+      url: `/api/groups/${id}/preview`,
+      headers,
+      payload: { action: "post", input },
+    });
+    expect(preview.statusCode, preview.body).toBe(200);
+    const posted = await app.inject({
+      method: "POST",
+      url: `/api/groups/${id}/entries`,
+      headers: { ...headers, "idempotency-key": randomUUID() },
+      payload: {
+        command: { action: "post", input },
+        previewId: preview.json().previewId,
+      },
+    });
+    expect(posted.statusCode, posted.body).toBe(201);
+    rows.push({ id: posted.json().entryIds[0] });
+  }
+  const reversal = {
+    action: "reverse" as const,
+    entryId: rows[0]!.id,
+    reason: "Reversed fixture",
+    date: "2026-09-08",
+  };
+  const reversalPreview = await app.inject({
+    method: "POST",
+    url: `/api/groups/${id}/preview`,
+    headers,
+    payload: reversal,
+  });
+  await app.inject({
+    method: "POST",
+    url: `/api/groups/${id}/entries`,
+    headers: { ...headers, "idempotency-key": randomUUID() },
+    payload: { command: reversal, previewId: reversalPreview.json().previewId },
+  });
+  await db.insert(schema.attachments).values({
+    groupId: id,
+    entryId: rows[1]!.id,
+    objectKey: randomUUID(),
+    fileName: "receipt.pdf",
+    contentType: "application/pdf",
+    size: 100,
+    createdBy: "alice",
+  });
+  const path = `/api/groups/${id}/attention`;
+  const firstResponse = await app.inject({
+    url: `${path}?reason=uncategorized`,
+    headers,
+  });
+  expect(firstResponse.statusCode, firstResponse.body).toBe(200);
+  const first = firstResponse.json();
+  const secondResponse = await app.inject({
+    url: `${path}?reason=uncategorized&page=2`,
+    headers,
+  });
+  expect(secondResponse.statusCode, secondResponse.body).toBe(200);
+  const second = secondResponse.json();
+  expect(first.records).toHaveLength(20);
+  expect(first.hasMore).toBe(true);
+  expect(second.records).toHaveLength(1);
+  expect(second.hasMore).toBe(false);
+  const ids = [...first.records, ...second.records].map(
+    (row: { id: string }) => row.id,
+  );
+  expect(new Set(ids).size).toBe(21);
+  expect(ids).not.toContain(rows[0]!.id);
+  expect(ids).not.toContain(rows[21]!.id);
+  const missing = (
+    await app.inject({ url: `${path}?reason=missing_attachment`, headers })
+  ).json();
+  expect(missing.records).toHaveLength(20);
+  expect(missing.hasMore).toBe(false);
+  expect(
+    missing.records.every(
+      (row: { kind: string; id: string }) =>
+        row.kind === "expense" &&
+        row.id !== rows[0]!.id &&
+        row.id !== rows[1]!.id,
+    ),
+  ).toBe(true);
+  expect(
+    (
+      await app.inject({
+        url: `${path}?reason=uncategorized`,
+        headers: { "x-test-subject": "mallory" },
+      })
+    ).statusCode,
+  ).toBe(404);
+  expect(
+    (await app.inject({ url: `${path}?reason=unknown`, headers })).statusCode,
+  ).toBe(400);
+  expect(
+    (await app.inject({ url: `${path}?reason=uncategorized&page=0`, headers }))
+      .statusCode,
+  ).toBe(400);
 });

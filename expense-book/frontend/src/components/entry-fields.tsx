@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { api, minorUnits, today, type GroupDetail } from "@/lib/api";
 import {
   decimalAmount,
@@ -14,6 +14,21 @@ type SplitTemplate = {
   method: Split["method"];
   shares: unknown;
   archivedAt: string | null;
+};
+
+const kindGuidance: Record<EntryKind, string> = {
+  expense:
+    "Use for a shared purchase. Choose who paid and who shares the cost; paying more than your share increases what you should receive.",
+  income:
+    "Use for shared earnings. Choose who received the money and who is entitled to a share; receiving more than your share increases what you should pay.",
+  obligation:
+    "Use when one member owes another without money changing hands. This increases what the payer owes and what the recipient should receive.",
+  transfer:
+    "Use for money already moved between members, such as an advance. This records cash movement separately from income and expenses and changes member balances.",
+  settlement:
+    "Use for a payment already made to settle a member balance. It reduces what the sender owes and what the recipient should receive; it does not create an expense.",
+  adjustment:
+    "Use for a non-cash balance correction with a clear reason. The selected payer owes more and the recipient should receive more. To fix a particular record, use Correct record on that record instead.",
 };
 
 export function readEntryFields(form: FormData): EntryInput {
@@ -88,6 +103,7 @@ export function EntryFields({
   group: GroupDetail;
   initial?: EntryInput;
 }) {
+  const guidanceId = useId();
   const [kind, setKind] = useState<EntryKind>(initial?.kind ?? "expense");
   const initialActivity = initial && "cash" in initial ? initial : undefined;
   const initialMethod = initialActivity?.split.method ?? null;
@@ -181,6 +197,7 @@ export function EntryFields({
           Record type
           <select
             name="kind"
+            aria-describedby={guidanceId}
             value={kind}
             onChange={(e) => setKind(e.target.value as EntryKind)}
           >
@@ -240,6 +257,13 @@ export function EntryFields({
           />
         </label>
       </div>
+      <p
+        id={guidanceId}
+        className="rounded-xl bg-stone-50 p-3 text-sm leading-6 text-stone-600"
+        aria-live="polite"
+      >
+        {kindGuidance[kind]}
+      </p>
       <label>
         {kind === "adjustment" ? "Reason for correction" : "Description"}
         <input

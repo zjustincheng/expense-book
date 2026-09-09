@@ -68,12 +68,14 @@ export async function api<T>(
     signal: AbortSignal.timeout(15_000),
   });
   const raw = await response.text();
-  let data: { error?: string } = {};
+  let data: unknown;
   if (raw) {
     try {
-      data = JSON.parse(raw) as { error?: string };
+      data = JSON.parse(raw);
     } catch {
-      data = { error: raw };
+      // A proxy can return HTML or an empty response when the API is unavailable.
+      // Never show raw proxy output or treat malformed success as a saved write.
+      data = undefined;
     }
   }
   if (response.status === 401 && typeof window !== "undefined") {
@@ -83,7 +85,22 @@ export async function api<T>(
     );
   }
   if (!response.ok)
-    throw new ApiError(data.error ?? "Request failed.", response.status);
+    throw new ApiError(
+      data &&
+        typeof data === "object" &&
+        "error" in data &&
+        typeof data.error === "string"
+        ? data.error
+        : response.status >= 500
+          ? "The service is temporarily unavailable. Please try again."
+          : `Request failed (${response.status}). Please try again.`,
+      response.status,
+    );
+  if (data === undefined && response.status !== 204)
+    throw new ApiError(
+      "The service returned an incomplete response. Please try again.",
+      502,
+    );
   return data as T;
 }
 export class ApiError extends Error {
