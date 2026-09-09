@@ -33,7 +33,8 @@ export function RecurringPage({ groupId }: { groupId: string }) {
   }, [load]);
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     try {
       await api(
         `/groups/${groupId}/recurring`,
@@ -45,7 +46,7 @@ export function RecurringPage({ groupId }: { groupId: string }) {
         },
         crypto.randomUUID(),
       );
-      event.currentTarget.reset();
+      formElement.reset();
       setShowForm(false);
       setNotice("Recurring transaction saved.");
       await load();
@@ -132,7 +133,8 @@ export function RecurringPage({ groupId }: { groupId: string }) {
     row: Recurring,
   ) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     try {
       await api(
         `/groups/${groupId}/recurring/${row.id}`,
