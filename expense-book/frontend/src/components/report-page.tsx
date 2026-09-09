@@ -350,6 +350,115 @@ export function ReportPage({ groupId }: { groupId: string }) {
                 </section>
               ))}
           </div>
+          {(() => {
+            const monthly = new Map<
+              string,
+              { income: bigint; expense: bigint }
+            >();
+            const categories = new Map<string, bigint>();
+            for (const record of report.records) {
+              const month = record.date.slice(0, 7);
+              const values = monthly.get(month) ?? { income: 0n, expense: 0n };
+              if (record.kind === "income")
+                values.income += BigInt(record.amount);
+              if (record.kind === "expense")
+                values.expense += BigInt(record.amount);
+              monthly.set(month, values);
+              const input =
+                typeof record.input === "object" && record.input
+                  ? (record.input as { category?: string })
+                  : {};
+              if (input.category)
+                categories.set(
+                  input.category,
+                  (categories.get(input.category) ?? 0n) +
+                    BigInt(record.amount),
+                );
+            }
+            const max = [...monthly.values()].reduce(
+              (value, row) =>
+                Math.max(value, Number(row.income), Number(row.expense)),
+              1,
+            );
+            const categoryRows = [...categories.entries()]
+              .sort((a, b) => Number(b[1] - a[1]))
+              .slice(0, 6);
+            return (
+              <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+                <section className="rounded-2xl border border-stone-200 bg-white p-5">
+                  <h2 className="font-semibold">Monthly activity</h2>
+                  <div className="mt-5 space-y-4">
+                    {[...monthly.entries()].sort().map(([month, values]) => (
+                      <div key={month}>
+                        <div className="mb-1 flex justify-between text-xs text-stone-500">
+                          <span>{month}</span>
+                          <span>
+                            {money(
+                              values.income + values.expense,
+                              group.currency,
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex h-3 gap-1">
+                          <div
+                            className="rounded-full bg-emerald-600"
+                            style={{
+                              width: `${Math.max(1, (Number(values.income) / max) * 100)}%`,
+                            }}
+                            title="Income"
+                          />
+                          <div
+                            className="rounded-full bg-amber-500"
+                            style={{
+                              width: `${Math.max(1, (Number(values.expense) / max) * 100)}%`,
+                            }}
+                            title="Expenses"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex gap-4 text-xs text-stone-500">
+                    <span>
+                      <i className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-600" />
+                      Income
+                    </span>
+                    <span>
+                      <i className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500" />
+                      Expenses
+                    </span>
+                  </div>
+                </section>
+                <section className="rounded-2xl border border-stone-200 bg-white p-5">
+                  <h2 className="font-semibold">Top categories</h2>
+                  <div className="mt-5 space-y-3">
+                    {categoryRows.length ? (
+                      categoryRows.map(([category, amount]) => (
+                        <div key={category}>
+                          <div className="flex justify-between text-sm">
+                            <span>{category}</span>
+                            <span>{money(amount, group.currency)}</span>
+                          </div>
+                          <div className="mt-1 h-2 rounded-full bg-stone-100">
+                            <div
+                              className="h-2 rounded-full bg-emerald-700"
+                              style={{
+                                width: `${Math.max(3, (Number(amount) / Number(categoryRows[0]![1])) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-stone-500">
+                        No category data in this range.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              </div>
+            );
+          })()}
           <section className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
             <div className="border-b border-stone-100 p-5">
               <h2 className="text-lg font-semibold">Matching activity</h2>
