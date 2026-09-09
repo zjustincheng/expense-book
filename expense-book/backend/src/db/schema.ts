@@ -176,6 +176,27 @@ export const importBatches = pgTable(
   },
   (t) => [index("import_batches_group_created").on(t.groupId, t.createdAt)],
 );
+export const notificationDismissals = pgTable(
+  "notification_dismissals",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    subject: text().notNull(),
+    notificationType: text().notNull(),
+    notificationId: uuid().notNull(),
+    dismissedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("notification_dismissal_key").on(
+      t.groupId,
+      t.subject,
+      t.notificationType,
+      t.notificationId,
+    ),
+  ],
+);
 // Append-only journal. The input snapshot preserves the split rule and expression.
 export const entries = pgTable(
   "entries",
