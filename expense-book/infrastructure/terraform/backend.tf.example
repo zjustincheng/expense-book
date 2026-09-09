@@ -1,0 +1,11 @@
+# Copy this block into backend.tf after creating the state bucket.
+# Keep backend.tf out of version control if it contains account-specific names.
+terraform {
+  backend "s3" {
+    bucket       = "replace-with-terraform-state-bucket"
+    key          = "expense-book/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
