@@ -55,6 +55,7 @@ export function Dashboard({
     }[]
   >([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const [commandOpen, setCommandOpen] = useState(false);
   useEffect(() => {
     try {
       setDismissed(
@@ -146,6 +147,15 @@ export function Dashboard({
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen(true);
+        return;
+      }
+      if (event.key === "Escape" && commandOpen) {
+        setCommandOpen(false);
+        return;
+      }
       if (target.matches("input, textarea, select, [contenteditable=true]"))
         return;
       if (event.key.toLowerCase() === "n" && group?.role !== "viewer") {
@@ -156,7 +166,7 @@ export function Dashboard({
     }
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  }, [group?.role]);
+  }, [commandOpen, group?.role]);
   async function createGroup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -292,6 +302,74 @@ export function Dashboard({
         id="overview"
         className="mx-auto w-full max-w-[1400px] px-5 py-8 sm:px-10 lg:py-12"
       >
+        {commandOpen && group && (
+          <div
+            className="fixed inset-0 z-40 flex items-start justify-center bg-stone-950/30 px-5 pt-[15vh]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Command palette"
+            onClick={() => setCommandOpen(false)}
+          >
+            <div
+              className="w-full max-w-lg rounded-2xl border border-stone-200 bg-white p-3 shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-stone-500">
+                Quick actions
+              </p>
+              <div className="grid gap-1">
+                {[
+                  {
+                    label: "Add record",
+                    href: "",
+                    action: () => setAdding(true),
+                    enabled: group.role !== "viewer",
+                  },
+                  {
+                    label: "Open reports",
+                    href: `/groups/${group.id}/reports`,
+                  },
+                  {
+                    label: "Recurring transactions",
+                    href: `/groups/${group.id}/recurring`,
+                  },
+                  { label: "Import CSV", href: `/groups/${group.id}/import` },
+                  {
+                    label: "Members & access",
+                    href: `/groups/${group.id}/settings`,
+                    enabled: group.role === "admin",
+                  },
+                ]
+                  .filter((item) => item.enabled !== false)
+                  .map((item) =>
+                    item.href ? (
+                      <a
+                        key={item.label}
+                        href={item.href}
+                        className="rounded-xl px-3 py-3 text-sm hover:bg-stone-100"
+                      >
+                        {item.label}
+                      </a>
+                    ) : (
+                      <button
+                        key={item.label}
+                        className="rounded-xl px-3 py-3 text-left text-sm hover:bg-stone-100"
+                        onClick={() => {
+                          item.action?.();
+                          setCommandOpen(false);
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ),
+                  )}
+              </div>
+              <p className="px-3 pt-3 text-xs text-stone-400">
+                Press Escape to close
+              </p>
+            </div>
+          </div>
+        )}
         <div className="mb-9 flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="mb-3 flex items-center gap-2 text-xs text-stone-500">
