@@ -8,6 +8,13 @@ import {
   type EntryKind,
   type Split,
 } from "@/lib/financial";
+type SplitTemplate = {
+  id: string;
+  name: string;
+  method: Split["method"];
+  shares: unknown;
+  archivedAt: string | null;
+};
 
 export function readEntryFields(form: FormData): EntryInput {
   const kind = String(form.get("kind")) as EntryKind;
@@ -95,6 +102,8 @@ export function EntryFields({
   const [method, setMethod] = useState<Split["method"]>(
     initialActivity?.split.method ?? "equal",
   );
+  const [templates, setTemplates] = useState<SplitTemplate[]>([]);
+  const [templateId, setTemplateId] = useState("");
   const [labels, setLabels] = useState<{
     projects: { id: string; name: string; archivedAt: string | null }[];
     categories: { id: string; name: string; archivedAt: string | null }[];
@@ -110,7 +119,15 @@ export function EntryFields({
         }
       })
       .catch(() => undefined);
+    api<SplitTemplate[]>(`/groups/${group.id}/split-templates`)
+      .then((result) =>
+        setTemplates(result.filter((template) => !template.archivedAt)),
+      )
+      .catch(() => undefined);
   }, [group.id, initialMethod]);
+  const selectedTemplate = templates.find(
+    (template) => template.id === templateId,
+  );
   const activity = kind === "income" || kind === "expense";
   const originalIds = new Set(
     initialActivity
@@ -135,6 +152,14 @@ export function EntryFields({
     initialActivity?.split.method === "equal"
       ? initialActivity.split.members
       : initialActivity?.split.shares.map((row) => row.memberId);
+  const templateMembers =
+    selectedTemplate &&
+    typeof selectedTemplate.shares === "object" &&
+    selectedTemplate.shares !== null &&
+    "members" in selectedTemplate.shares &&
+    Array.isArray(selectedTemplate.shares.members)
+      ? selectedTemplate.shares.members.map(String)
+      : undefined;
   function shareValue(id: string) {
     const split = initialActivity?.split;
     if (!split || split.method === "equal" || split.method !== method)
@@ -279,6 +304,30 @@ export function EntryFields({
       </div>
       {activity ? (
         <>
+          {templates.length > 0 && (
+            <label>
+              Apply saved split template
+              <select
+                value={templateId}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setTemplateId(next);
+                  const template = templates.find((item) => item.id === next);
+                  if (template) {
+                    setMethod(template.method);
+                    setAdvanced(template.method !== "equal");
+                  }
+                }}
+              >
+                <option value="">Choose a template</option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="flex items-center gap-2 text-sm">
             <input
               className="!w-auto"
@@ -346,7 +395,7 @@ export function EntryFields({
               )}
             </>
           )}
-          <fieldset>
+          <fieldset key={templateId}>
             <legend className="mb-2 text-sm font-medium">
               {!advanced || method === "equal"
                 ? "Shared equally with"
@@ -365,7 +414,11 @@ export function EntryFields({
                       name="shared"
                       value={member.id}
                       defaultChecked={
-                        initialShared ? initialShared.includes(member.id) : true
+                        templateMembers
+                          ? templateMembers.includes(member.id)
+                          : initialShared
+                            ? initialShared.includes(member.id)
+                            : true
                       }
                     />
                     {member.name}

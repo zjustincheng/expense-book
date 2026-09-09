@@ -28,6 +28,13 @@ type Settings = {
   events: { id: string; action: string; actor: string; createdAt: string }[];
 };
 type Command = Record<string, unknown> & { action: string };
+type SplitTemplate = {
+  id: string;
+  name: string;
+  method: "equal" | "weights" | "percentages" | "exact";
+  shares: unknown;
+  archivedAt: string | null;
+};
 const roles = ["admin", "editor", "viewer"];
 const panel = "rounded-2xl border border-stone-200 bg-white p-6";
 
@@ -42,6 +49,7 @@ export function GroupSettings({ groupId }: { groupId: string }) {
     categories: { id: string; name: string; archivedAt: string | null }[];
     defaultSplitMethod?: "equal" | "weights" | "percentages" | "exact";
   }>({ projects: [], categories: [] });
+  const [templates, setTemplates] = useState<SplitTemplate[]>([]);
   const attempt = useRef<{ body: string; key: string } | null>(null);
   const load = useCallback(
     async () => setSettings(await api<Settings>(`/groups/${groupId}/settings`)),
@@ -60,6 +68,16 @@ export function GroupSettings({ groupId }: { groupId: string }) {
       active = false;
     };
   }, [groupId]);
+  const loadTemplates = useCallback(
+    async () =>
+      setTemplates(
+        await api<SplitTemplate[]>(`/groups/${groupId}/split-templates`),
+      ),
+    [groupId],
+  );
+  useEffect(() => {
+    loadTemplates().catch(() => undefined);
+  }, [loadTemplates]);
   useEffect(() => {
     api<typeof labels>(`/groups/${groupId}/labels`)
       .then(setLabels)
@@ -99,6 +117,44 @@ export function GroupSettings({ groupId }: { groupId: string }) {
       setError(
         e instanceof Error ? e.message : "Unable to save default split rule.",
       );
+    }
+  }
+  async function createTemplate(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const members = form.getAll("templateMember").map(String);
+    if (!members.length) {
+      setError("Choose at least one member for the template.");
+      return;
+    }
+    try {
+      await api(
+        `/groups/${groupId}/split-templates`,
+        {
+          name: String(form.get("templateName")),
+          method: "equal",
+          shares: { members },
+        },
+        crypto.randomUUID(),
+      );
+      event.currentTarget.reset();
+      await loadTemplates();
+      setNotice("Split template created.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to create template.");
+    }
+  }
+  async function archiveTemplate(id: string) {
+    try {
+      await api(
+        `/groups/${groupId}/split-templates/${id}/archive`,
+        {},
+        crypto.randomUUID(),
+      );
+      await loadTemplates();
+      setNotice("Split template archived.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to archive template.");
     }
   }
   async function saveOpeningBalance(event: React.FormEvent<HTMLFormElement>) {
@@ -276,6 +332,69 @@ export function GroupSettings({ groupId }: { groupId: string }) {
               </label>
               <Button variant="outline">Save default split</Button>
             </form>
+            <div className="mt-6 border-t border-stone-100 pt-5">
+              <h3 className="font-semibold">Reusable split templates</h3>
+              <p className="mt-1 text-sm text-stone-500">
+                Save common participant groups for faster transaction entry.
+              </p>
+              <form
+                className="mt-4 space-y-3 rounded-xl bg-stone-50 p-4"
+                onSubmit={createTemplate}
+              >
+                <label>
+                  Template name
+                  <input
+                    name="templateName"
+                    required
+                    maxLength={80}
+                    placeholder="Household"
+                  />
+                </label>
+                <fieldset>
+                  <legend className="mb-2 text-sm font-medium">
+                    Shared equally with
+                  </legend>
+                  <div className="flex flex-wrap gap-3">
+                    {settings.members
+                      .filter((member) => !member.archivedAt)
+                      .map((member) => (
+                        <label
+                          key={member.id}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <input
+                            className="!w-auto"
+                            type="checkbox"
+                            name="templateMember"
+                            value={member.id}
+                          />
+                          {member.name}
+                        </label>
+                      ))}
+                  </div>
+                </fieldset>
+                <Button size="sm">Create template</Button>
+              </form>
+              <div className="mt-3 space-y-2">
+                {templates
+                  .filter((template) => !template.archivedAt)
+                  .map((template) => (
+                    <div
+                      key={template.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 px-3 py-2 text-sm"
+                    >
+                      <span>{template.name}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void archiveTemplate(template.id)}
+                      >
+                        Archive
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            </div>
           </section>
           <section className={panel}>
             <h2 className="text-xl font-semibold">
