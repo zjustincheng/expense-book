@@ -63,6 +63,14 @@ afterAll(async () => {
 });
 
 describe("authenticated financial API", () => {
+  it("exposes liveness and database readiness probes", async () => {
+    expect((await app.inject({ url: "/health" })).json()).toEqual({
+      status: "ok",
+    });
+    expect((await app.inject({ url: "/ready" })).json()).toEqual({
+      status: "ready",
+    });
+  });
   it("requires an identity", async () =>
     expect((await app.inject({ url: "/api/groups" })).statusCode).toBe(401));
   it("creates a zero-balance group", async () => {
