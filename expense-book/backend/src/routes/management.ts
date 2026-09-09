@@ -11,6 +11,7 @@ import {
   projects,
   categories,
   splitTemplates,
+  userPreferences,
 } from "../db/schema.js";
 import { json } from "../lib/json.js";
 import { fail } from "../lib/errors.js";
@@ -33,7 +34,33 @@ export function registerManagementRoutes(
   app.get("/session", async (request) => ({
     subject: request.subject,
     verifiedEmail: await request.identity.verifiedEmail(),
+    notifications:
+      (
+        await db
+          .select({ notifications: userPreferences.notifications })
+          .from(userPreferences)
+          .where(eq(userPreferences.subject, request.subject))
+      )[0]?.notifications ?? {},
   }));
+  app.patch("/session/preferences", async (request) => {
+    const notifications = z
+      .record(
+        z
+          .string()
+          .regex(/^[a-z_]+$/)
+          .max(40),
+        z.boolean(),
+      )
+      .parse((request.body as { notifications?: unknown })?.notifications);
+    await db
+      .insert(userPreferences)
+      .values({ subject: request.subject, notifications })
+      .onConflictDoUpdate({
+        target: userPreferences.subject,
+        set: { notifications, updatedAt: new Date() },
+      });
+    return { notifications };
+  });
   app.get("/groups/:groupId/settings", async (request) => {
     const { groupId } = groupParams.parse(request.params);
     await requireAdmin(db, groupId, request.subject);

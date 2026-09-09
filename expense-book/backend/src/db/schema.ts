@@ -60,6 +60,11 @@ export const access = pgTable(
     check("valid_role", sql`${t.role} in ('admin','editor','viewer')`),
   ],
 );
+export const userPreferences = pgTable("user_preferences", {
+  subject: text().primaryKey(),
+  notifications: jsonb().$type<Record<string, boolean>>().notNull(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
 export const members = pgTable(
   "members",
   {
