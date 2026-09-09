@@ -28,7 +28,9 @@ export const groups = pgTable(
     ledgerVersion: bigint({ mode: "bigint" })
       .notNull()
       .default(sql`0`),
-    openingBalance: bigint({ mode: "bigint" }).notNull().default(sql`0`),
+    openingBalance: bigint({ mode: "bigint" })
+      .notNull()
+      .default(sql`0`),
     openingBalanceDate: date(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
@@ -160,6 +162,19 @@ export const recurringTransactions = pgTable(
     ),
     check("recurring_active", sql`${t.active} in (0, 1)`),
   ],
+);
+export const importBatches = pgTable(
+  "import_batches",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    createdBy: text().notNull(),
+    rowCount: integer().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("import_batches_group_created").on(t.groupId, t.createdAt)],
 );
 // Append-only journal. The input snapshot preserves the split rule and expression.
 export const entries = pgTable(
