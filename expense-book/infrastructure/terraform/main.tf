@@ -22,6 +22,16 @@ resource "aws_s3_bucket_versioning" "attachments" {
   bucket = aws_s3_bucket.attachments.id
   versioning_configuration { status = "Enabled" }
 }
+resource "aws_s3_bucket_lifecycle_configuration" "attachments" {
+  bucket = aws_s3_bucket.attachments.id
+  rule {
+    id     = "retain-recent-versions"
+    status = "Enabled"
+    filter { prefix = "groups/" }
+    noncurrent_version_expiration { noncurrent_days = 90 }
+    abort_incomplete_multipart_upload { days_after_initiation = 7 }
+  }
+}
 resource "aws_s3_bucket_policy" "attachments" {
   bucket = aws_s3_bucket.attachments.id
   policy = jsonencode({
@@ -65,8 +75,10 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids          = [aws_security_group.database.id]
   publicly_accessible             = false
   backup_retention_period         = 7
+  backup_window                   = "03:00-03:30"
+  maintenance_window              = "sun:04:00-sun:04:30"
   multi_az                        = var.environment == "production"
-  deletion_protection             = true
+  deletion_protection             = var.environment == "production"
   skip_final_snapshot             = false
   final_snapshot_identifier       = "${local.name}-final"
   auto_minor_version_upgrade      = true
