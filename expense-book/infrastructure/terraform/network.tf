@@ -5,7 +5,19 @@ resource "aws_vpc" "application" {
   enable_dns_hostnames = true
   tags                 = { Name = local.name }
 }
-data "aws_availability_zones" "available" { state = "available" }
+data "aws_availability_zones" "available" {
+  state = "available"
+  # Exclude Local Zones and Wavelength Zones. NAT Gateway and RDS subnet
+  # groups require standard regional Availability Zones.
+  filter {
+    name   = "opt-in-status"
+    values = ["opt-in-not-required"]
+  }
+  filter {
+    name   = "zone-type"
+    values = ["availability-zone"]
+  }
+}
 resource "aws_internet_gateway" "application" {
   count  = var.create_network ? 1 : 0
   vpc_id = aws_vpc.application[0].id
