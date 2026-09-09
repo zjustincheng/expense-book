@@ -223,7 +223,9 @@ export function Dashboard({
       const next = await api<{
         entries: GroupDetail["entries"];
         hasMore: boolean;
-      }>(`/groups/${group.id}/activity?page=${activityPage + 1}&pageSize=50`);
+      }>(
+        `/groups/${group.id}/activity?${new URLSearchParams({ page: String(activityPage + 1), pageSize: "50", search: filter, project: projectFilter, category: categoryFilter, kind: kindFilter })}`,
+      );
       setGroup({ ...group, entries: [...group.entries, ...next.entries] });
       setActivityPage(activityPage + 1);
       setActivityHasMore(next.hasMore);

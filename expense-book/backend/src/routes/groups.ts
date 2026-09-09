@@ -47,6 +47,10 @@ const reportQuery = z.object({
 const activityQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(50),
+  search: z.string().trim().max(120).optional(),
+  project: z.string().trim().max(80).optional(),
+  category: z.string().trim().max(80).optional(),
+  kind: z.string().trim().max(30).optional(),
 });
 export function registerGroupRoutes(app: FastifyInstance, db: Database) {
   app.get("/groups", async (request) =>
@@ -213,10 +217,24 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
     const { groupId } = groupParams.parse(request.params);
     await checkAccess(db, groupId, request.subject);
     const query = activityQuery.parse(request.query);
+    const conditions = [eq(entries.groupId, groupId)];
+    if (query.search)
+      conditions.push(
+        sql`(${entries.description} ilike ${`%${query.search}%`} or ${entries.input}->>'project' ilike ${`%${query.search}%`} or ${entries.input}->>'category' ilike ${`%${query.search}%`})`,
+      );
+    if (query.project)
+      conditions.push(
+        sql`${entries.input}->>'project' ilike ${`%${query.project}%`}`,
+      );
+    if (query.category)
+      conditions.push(
+        sql`${entries.input}->>'category' ilike ${`%${query.category}%`}`,
+      );
+    if (query.kind) conditions.push(eq(entries.kind, query.kind));
     const rows = await db
       .select()
       .from(entries)
-      .where(eq(entries.groupId, groupId))
+      .where(and(...conditions))
       .orderBy(desc(entries.date), desc(entries.createdAt))
       .limit(query.pageSize + 1)
       .offset((query.page - 1) * query.pageSize);
