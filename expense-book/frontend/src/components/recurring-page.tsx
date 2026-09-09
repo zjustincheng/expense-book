@@ -223,27 +223,45 @@ export function RecurringPage({ groupId }: { groupId: string }) {
           {rows
             .filter((row) => row.active)
             .sort((a, b) => a.nextRun.localeCompare(b.nextRun))
-            .map((row) => (
-              <div
-                key={`calendar-${row.id}`}
-                className="rounded-xl bg-stone-50 p-4"
-              >
-                <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                  {new Date(`${row.nextRun}T00:00:00Z`).toLocaleDateString(
-                    undefined,
-                    { month: "long", year: "numeric" },
-                  )}
-                </p>
-                <p className="mt-2 font-medium">{row.name}</p>
-                <p className="mt-1 text-sm text-stone-600">
-                  {new Date(`${row.nextRun}T00:00:00Z`).toLocaleDateString(
-                    undefined,
-                    { weekday: "short", month: "short", day: "numeric" },
-                  )}
-                </p>
-                <p className="mt-1 text-xs text-stone-500">{row.frequency}</p>
-              </div>
-            ))}
+            .map((row) => {
+              const overdue =
+                row.nextRun < new Date().toISOString().slice(0, 10);
+              return (
+                <div
+                  key={`calendar-${row.id}`}
+                  className="rounded-xl bg-stone-50 p-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                    {new Date(`${row.nextRun}T00:00:00Z`).toLocaleDateString(
+                      undefined,
+                      { month: "long", year: "numeric" },
+                    )}
+                  </p>
+                  <p className="mt-2 font-medium">{row.name}</p>
+                  <p className="mt-1 text-sm text-stone-600">
+                    {new Date(`${row.nextRun}T00:00:00Z`).toLocaleDateString(
+                      undefined,
+                      { weekday: "short", month: "short", day: "numeric" },
+                    )}
+                  </p>
+                  <p className="mt-1 text-xs text-stone-500">{row.frequency}</p>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <span
+                      className={`text-xs font-medium ${overdue ? "text-amber-700" : "text-emerald-700"}`}
+                    >
+                      {overdue ? "Overdue" : "Scheduled"}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void generate(row)}
+                    >
+                      Generate draft
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           {!rows.some((row) => row.active) && (
             <p className="text-sm text-stone-500">No upcoming schedules.</p>
           )}
