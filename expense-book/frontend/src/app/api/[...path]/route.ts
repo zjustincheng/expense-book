@@ -19,7 +19,8 @@ async function proxy(
     path.some((part) => !/^[a-zA-Z0-9-]+$/.test(part))
   )
     return new NextResponse(null, { status: 404 });
-  const token = (await cookies()).get("access_token")?.value;
+  const cookieJar = await cookies();
+  const token = cookieJar.get("access_token")?.value;
   const headers = new Headers({ "Content-Type": "application/json" });
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const key = request.headers.get("idempotency-key");
@@ -38,11 +39,14 @@ async function proxy(
         signal: AbortSignal.timeout(15_000),
       },
     );
-    return new NextResponse(await response.text(), {
+    const responseBody = await response.text();
+    if (response.status === 401) cookieJar.delete("access_token");
+    return new NextResponse(responseBody, {
       status: response.status,
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "no-store",
+        ...(response.status === 401 ? { "x-session-expired": "1" } : {}),
       },
     });
   } catch {
@@ -55,4 +59,4 @@ async function proxy(
     );
   }
 }
-export { proxy as GET, proxy as POST };
+export { proxy as GET, proxy as POST, proxy as PATCH, proxy as DELETE };
