@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntryForm } from "@/components/entry-form";
-import { DraftList } from "@/components/draft-list";
+import { AttentionInbox } from "@/components/attention-inbox";
 import { RecordDetails } from "@/components/record-actions";
 import {
   api,
@@ -765,28 +765,7 @@ export function Dashboard({
                 </Button>
               </div>
             )}
-            <DraftList key={group.id} group={group} onSaved={refresh} />
-            {(group.suggestions.length > 0 || group.role !== "viewer") && (
-              <section
-                className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-5"
-                aria-label="Needs attention"
-              >
-                <h2 className="font-semibold">Needs attention</h2>
-                <div className="mt-2 space-y-1 text-sm text-amber-950">
-                  {group.suggestions.length > 0 && (
-                    <p>
-                      {group.suggestions.length} settlement suggestion
-                      {group.suggestions.length === 1 ? "" : "s"} available.
-                    </p>
-                  )}
-                  {group.role !== "viewer" && (
-                    <p>
-                      Review saved drafts before posting them to the ledger.
-                    </p>
-                  )}
-                </div>
-              </section>
-            )}
+            <AttentionInbox key={group.id} group={group} onSaved={refresh} />
             <div className="grid items-start gap-6 xl:grid-cols-[1.5fr_1fr]">
               <section
                 id="activity"

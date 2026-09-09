@@ -23,24 +23,33 @@ export function BalancePreview({
           </li>
         ))}
       </ul>
-      {preview.effects.map((effect) => (
-        <div
-          key={effect.memberId}
-          className="flex justify-between gap-3 py-1 text-sm"
-        >
-          <span>
-            {members.find((member) => member.id === effect.memberId)?.name}
-          </span>
-          <span>
-            {BigInt(effect.outstanding) > 0n ? "+" : ""}
-            {money(effect.outstanding, currency)}
-          </span>
-        </div>
-      ))}
+      <p className="mb-2 text-xs text-emerald-900">
+        Change to each member’s balance
+      </p>
+      {preview.effects.map((effect) => {
+        const member = members.find((member) => member.id === effect.memberId);
+        const change = BigInt(effect.outstanding);
+        return (
+          <div
+            key={effect.memberId}
+            className="flex flex-wrap justify-between gap-3 py-1 text-sm"
+          >
+            <span>{member?.name}</span>
+            <span>
+              {money(change < 0n ? -change : change, currency)}
+              {change === 0n
+                ? " · No change"
+                : change > 0n
+                  ? " toward receiving more / owing less"
+                  : " toward owing more / receiving less"}
+            </span>
+          </div>
+        );
+      })}
       <p className="mt-3 text-xs text-emerald-900">
-        Positive changes increase what a member should receive. Negative changes
-        increase what they should pay. Review again if the group changes or this
-        preview expires.
+        Nothing is posted until you confirm. Changes apply to existing balances;
+        they are not the final amounts owed. Review again if the group changes
+        or this preview expires.
       </p>
     </div>
   );

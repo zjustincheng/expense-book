@@ -2,7 +2,14 @@ import { and, desc, eq, exists, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Database } from "../db/client.js";
-import { access, effects, entries, groups, members } from "../db/schema.js";
+import {
+  access,
+  attachments,
+  effects,
+  entries,
+  groups,
+  members,
+} from "../db/schema.js";
 import {
   emptyEffect,
   outstanding,
@@ -53,6 +60,43 @@ const activityQuery = z.object({
   kind: z.string().trim().max(30).optional(),
 });
 export function registerGroupRoutes(app: FastifyInstance, db: Database) {
+  app.get("/groups/:groupId/attention", async (request) => {
+    const { groupId } = groupParams.parse(request.params);
+    await checkAccess(db, groupId, request.subject);
+    const { reason, page } = z
+      .object({
+        reason: z.enum(["uncategorized", "missing_attachment"]),
+        page: z.coerce.number().int().min(1).max(100000).default(1),
+      })
+      .parse(request.query);
+    const [allEntries, attachmentRows] = await Promise.all([
+      db.select().from(entries).where(eq(entries.groupId, groupId)),
+      db
+        .select({ entryId: attachments.entryId })
+        .from(attachments)
+        .where(eq(attachments.groupId, groupId)),
+    ]);
+    const reversed = new Set(
+      allEntries.flatMap((entry) => (entry.reverses ? [entry.reverses] : [])),
+    );
+    const attached = new Set(attachmentRows.map((row) => row.entryId));
+    const filtered = allEntries
+      .filter((entry) => entry.kind === "income" || entry.kind === "expense")
+      .filter((entry) => !reversed.has(entry.id))
+      .filter((entry) => {
+        const input = entry.input as { category?: string };
+        return reason === "uncategorized"
+          ? !input.category?.trim()
+          : entry.kind === "expense" && !attached.has(entry.id);
+      })
+      .sort((a, b) =>
+        `${b.date}${b.createdAt.toISOString()}${b.id}`.localeCompare(
+          `${a.date}${a.createdAt.toISOString()}${a.id}`,
+        ),
+      );
+    const rows = filtered.slice((page - 1) * 20, page * 20 + 1);
+    return json({ records: rows.slice(0, 20), hasMore: rows.length > 20 });
+  });
   app.get("/groups", async (request) =>
     db
       .select({
