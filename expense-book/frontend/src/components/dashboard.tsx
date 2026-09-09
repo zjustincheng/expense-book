@@ -923,7 +923,10 @@ export function Dashboard({
                         );
                       })
                       .map((entry) => (
-                        <li key={entry.id} className="flex gap-3 px-5 py-4">
+                        <li
+                          key={entry.id}
+                          className="flex flex-wrap gap-3 px-5 py-4"
+                        >
                           <input
                             type="checkbox"
                             aria-label={`Select ${entry.description}`}
