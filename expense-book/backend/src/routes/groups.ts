@@ -198,13 +198,18 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
           .offset((query.page - 1) * query.pageSize);
         const hasMore = rows.length > query.pageSize;
         rows.splice(query.pageSize);
+        const aggregateRows = await tx
+          .select({ kind: entries.kind, amount: entries.amount })
+          .from(entries)
+          .where(and(...conditions));
         const totals = new Map<string, bigint>();
-        for (const row of rows)
+        for (const row of aggregateRows)
           totals.set(row.kind, (totals.get(row.kind) ?? 0n) + row.amount);
         return json({
           records: rows,
           totals: Object.fromEntries(totals),
-          count: rows.length,
+          count: aggregateRows.length,
+          pageCount: rows.length,
           page: query.page,
           pageSize: query.pageSize,
           hasMore,
