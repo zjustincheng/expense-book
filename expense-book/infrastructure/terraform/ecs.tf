@@ -10,6 +10,10 @@ variable "ecs_security_group_id" {
   type        = string
   default     = null
   description = "Security group assigned to ECS tasks."
+  validation {
+    condition     = var.create_network || var.ecs_security_group_id != null
+    error_message = "Set ecs_security_group_id when create_network is false."
+  }
 }
 
 resource "aws_cloudwatch_log_group" "ecs" {

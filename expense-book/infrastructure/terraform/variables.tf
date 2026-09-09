@@ -30,6 +30,10 @@ variable "vpc_id" {
   type        = string
   default     = null
   description = "VPC containing application and database private subnets."
+  validation {
+    condition     = var.create_network || var.vpc_id != null
+    error_message = "Set vpc_id when create_network is false."
+  }
 }
 variable "private_subnet_ids" {
   type        = list(string)
@@ -44,6 +48,10 @@ variable "application_security_group_id" {
   type        = string
   default     = null
   description = "Security group used by the backend ECS tasks."
+  validation {
+    condition     = var.create_network || var.application_security_group_id != null
+    error_message = "Set application_security_group_id when create_network is false."
+  }
 }
 variable "public_subnet_ids" {
   type        = list(string)
