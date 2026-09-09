@@ -45,6 +45,9 @@ export function Dashboard({
   const [projectFilter, setProjectFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [kindFilter, setKindFilter] = useState("");
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityHasMore, setActivityHasMore] = useState(true);
+  const [activityLoading, setActivityLoading] = useState(false);
   const [notifications, setNotifications] = useState<
     {
       id: string;
@@ -133,6 +136,8 @@ export function Dashboard({
     setLoading(true);
     setGroup(null);
     setNotifications([]);
+    setActivityPage(1);
+    setActivityHasMore(true);
     setError("");
     setAdding(false);
     setExplanation(null);
@@ -209,6 +214,25 @@ export function Dashboard({
       setError(e instanceof Error ? e.message : "Unable to create group.");
     } finally {
       setLoading(false);
+    }
+  }
+  async function loadOlderActivity() {
+    if (!group || activityLoading || !activityHasMore) return;
+    setActivityLoading(true);
+    try {
+      const next = await api<{
+        entries: GroupDetail["entries"];
+        hasMore: boolean;
+      }>(`/groups/${group.id}/activity?page=${activityPage + 1}&pageSize=50`);
+      setGroup({ ...group, entries: [...group.entries, ...next.entries] });
+      setActivityPage(activityPage + 1);
+      setActivityHasMore(next.hasMore);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to load older activity.",
+      );
+    } finally {
+      setActivityLoading(false);
     }
   }
   function exportCsv() {
@@ -886,6 +910,17 @@ export function Dashboard({
                         </li>
                       ))}
                   </ul>
+                )}
+                {group.entries.length >= 100 && activityHasMore && (
+                  <div className="border-t border-stone-100 p-4 text-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => void loadOlderActivity()}
+                      disabled={activityLoading}
+                    >
+                      {activityLoading ? "Loading…" : "Load older activity"}
+                    </Button>
+                  </div>
                 )}
               </section>
               <div className="space-y-6">

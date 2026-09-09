@@ -44,6 +44,10 @@ const reportQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(50),
 });
+const activityQuery = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(50),
+});
 export function registerGroupRoutes(app: FastifyInstance, db: Database) {
   app.get("/groups", async (request) =>
     db
@@ -204,6 +208,21 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
+  });
+  app.get("/groups/:groupId/activity", async (request) => {
+    const { groupId } = groupParams.parse(request.params);
+    await checkAccess(db, groupId, request.subject);
+    const query = activityQuery.parse(request.query);
+    const rows = await db
+      .select()
+      .from(entries)
+      .where(eq(entries.groupId, groupId))
+      .orderBy(desc(entries.date), desc(entries.createdAt))
+      .limit(query.pageSize + 1)
+      .offset((query.page - 1) * query.pageSize);
+    const hasMore = rows.length > query.pageSize;
+    rows.splice(query.pageSize);
+    return { entries: rows, page: query.page, hasMore };
   });
   app.get("/groups/:groupId/statements/:memberId", async (request) => {
     const { groupId, memberId } = groupParams
