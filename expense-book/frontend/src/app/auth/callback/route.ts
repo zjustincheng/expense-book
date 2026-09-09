@@ -49,9 +49,7 @@ export async function GET(request: NextRequest) {
     maxAge: Math.min(tokens.expires_in, 3600),
   });
   const safeDestination =
-    /^\/(invitations\/[0-9a-f-]{36}|groups\/[0-9a-f-]{36}\/settings)$/.test(
-      destination,
-    )
+    destination.startsWith("/") && !destination.startsWith("//")
       ? destination
       : "/";
   return NextResponse.redirect(new URL(safeDestination, config.appUrl));
