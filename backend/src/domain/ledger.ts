@@ -54,6 +54,10 @@ export type Effect = {
   correction: bigint;
 };
 export type PostedEntry = { amount: bigint; effects: Effect[] };
+/** Positive means the group owes this member, negative means they owe the group.
+ *  Fair shares and obligations credit; cash they already handled debits. The two
+ *  are tracked separately so paying for something and benefiting from it stay
+ *  independent facts, which is what makes refunds and corrections expressible. */
 export function outstanding(effect: Effect): bigint {
   return (
     effect.allocatedIncome -
@@ -146,12 +150,19 @@ export function postEntry(
     from[field] -= amount;
     to[field] += amount;
   }
+  // Last line of defence before the journal, which is append-only and never
+  // corrected in place. A split or cash list that does not net to zero has to
+  // fail here rather than become a permanent record.
   const result = [...effects.values()];
   if (result.reduce((s, e) => s + outstanding(e), 0n) !== 0n)
     throw new Error("Ledger is not balanced.");
   return { amount, effects: result };
 }
 
+/** Greedy pairing of debtors against creditors in a stable memberId order. This
+ *  is not the fewest possible transfers, but it clears every balance in fewer
+ *  transfers than there are members holding one, and the fixed order keeps the
+ *  same suggestion on screen between reloads instead of reshuffling. */
 export function suggestSettlements(
   balances: { memberId: string; outstanding: bigint }[],
 ) {

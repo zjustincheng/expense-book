@@ -348,6 +348,9 @@ export function financialService(db: Database) {
         await tx
           .insert(financialRequests)
           .values({ groupId, actor, key, requestHash: hash, entryIds });
+        // Any posting invalidates every open preview in this group. Balance
+        // effects shown before someone else's entry landed no longer describe
+        // what confirming would do, so the next confirm is refused as stale.
         await tx
           .update(groups)
           .set({ ledgerVersion: sql`${groups.ledgerVersion} + 1` })

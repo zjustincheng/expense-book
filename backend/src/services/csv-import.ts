@@ -61,6 +61,9 @@ export function parseImportCsv(csv: string) {
     throw new Error(`CSV is missing required columns: ${missing.join(", ")}.`);
   const rows: ImportRow[] = [];
   const errors: { row: number; message: string }[] = [];
+  // Walk the raw file lines rather than the filtered ones. Error rows are
+  // reported by absolute position so they match what the user sees in a
+  // spreadsheet, which blank lines would otherwise shift.
   for (let index = headerIndex + 1; index < lines.length; index++) {
     if (!lines[index]?.trim()) continue;
     try {

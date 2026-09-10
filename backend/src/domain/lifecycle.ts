@@ -94,6 +94,10 @@ export function refundEntry(
         effect.memberId,
         (shares.get(effect.memberId) ?? 0n) + effect[field],
       );
+  // shares now holds what each member still has allocated: their original share
+  // plus the negative shares of every earlier refund. If that no longer adds up
+  // to the refundable remainder then the history is inconsistent, and picking a
+  // distribution anyway would move money on a guess.
   if (
     [...shares.values()].some((value) => value < 0n) ||
     [...shares.values()].reduce((sum, value) => sum + value, 0n) !== remaining
