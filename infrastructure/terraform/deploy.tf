@@ -8,9 +8,9 @@ data "aws_iam_policy_document" "github_assume" {
       identifiers = [aws_iam_openid_connect_provider.github[0].arn]
     }
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:environment:${var.environment}"]
+      values   = [var.github_oidc_subject != null ? var.github_oidc_subject : "repo:${var.github_repository}:environment:${var.environment}"]
     }
     condition {
       test     = "StringEquals"

@@ -15,4 +15,5 @@ cloudfront_certificate_arn    = "arn:aws:acm:us-east-1:123456789012:certificate/
 # Otherwise provide the existing network IDs above.
 create_network                  = false
 github_repository               = "zjustincheng/expense-book"
+github_oidc_subject             = "repo:zjustincheng@125840269/expense-book@1360805191:environment:development"
 alert_email                     = "ops@example.com"

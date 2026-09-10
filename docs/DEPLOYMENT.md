@@ -18,7 +18,7 @@ Set these **repository variables** under Settings → Secrets and variables → 
 
 Set `AWS_DEPLOY_ROLE_ARN` as a secret in that GitHub environment, using the ARN of Terraform's `aws_iam_role.github_deploy` role. No AWS access keys are needed.
 
-Apply the updated Terraform configuration to align the deployment role's OIDC trust with `repo:OWNER/REPOSITORY:environment:ENVIRONMENT`. Review the plan before applying. An existing role that trusts only `ref:refs/heads/main` cannot authenticate this environment-based job.
+The deployment job's **Show OIDC trust claims** step reports the exact subject without exposing its authentication token. Set Terraform's `github_oidc_subject` to that subject in your local `terraform.tfvars`, then review and apply the plan. Newer repositories include immutable owner and repository IDs. For this repository's development environment, the observed subject is `repo:zjustincheng@125840269/expense-book@1360805191:environment:development`. The audience remains `sts.amazonaws.com`. A policy using the older name-only subject will not match this identity.
 
 The ECS cluster, services, repositories, database, and runtime secrets must already exist. Infrastructure creation remains a Terraform operation.
 
