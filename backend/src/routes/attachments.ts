@@ -118,24 +118,50 @@ export function registerAttachmentRoutes(
       };
     },
   );
-  app.delete("/groups/:groupId/attachments/:attachmentId", async (request) => {
-    const { groupId, attachmentId } = z
-      .object({ groupId: z.string().uuid(), attachmentId: z.string().uuid() })
-      .parse(request.params);
-    await authorize(db, groupId, request.subject, true);
-    const [attachment] = await db
-      .select()
-      .from(attachments)
-      .where(
-        and(eq(attachments.groupId, groupId), eq(attachments.id, attachmentId)),
-      );
-    if (!attachment) fail("Attachment not found.", 404);
-    await db
-      .delete(attachments)
-      .where(
-        and(eq(attachments.groupId, groupId), eq(attachments.id, attachmentId)),
-      );
-    if (storage) await deleteObject(storage, attachment.objectKey);
-    return { deleted: true };
-  });
+  app.delete(
+    "/groups/:groupId/attachments/:attachmentId",
+    async (request, reply) => {
+      const { groupId, attachmentId } = z
+        .object({ groupId: z.string().uuid(), attachmentId: z.string().uuid() })
+        .parse(request.params);
+      await authorize(db, groupId, request.subject, true);
+      const [attachment] = await db
+        .select()
+        .from(attachments)
+        .where(
+          and(
+            eq(attachments.groupId, groupId),
+            eq(attachments.id, attachmentId),
+          ),
+        );
+      if (!attachment) fail("Attachment not found.", 404);
+      if (!storage) fail("Attachment storage is not configured.", 503);
+      try {
+        await deleteObject(storage, attachment.objectKey);
+      } catch (error) {
+        request.log.error(
+          {
+            attachmentId,
+            errorName: error instanceof Error ? error.name : "UnknownError",
+          },
+          "Attachment storage deletion failed",
+        );
+        return reply
+          .code(503)
+          .send({
+            error:
+              "The file could not be deleted from storage. The attachment has been kept; please try again.",
+          });
+      }
+      await db
+        .delete(attachments)
+        .where(
+          and(
+            eq(attachments.groupId, groupId),
+            eq(attachments.id, attachmentId),
+          ),
+        );
+      return { deleted: true };
+    },
+  );
 }

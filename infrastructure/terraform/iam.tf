@@ -34,7 +34,7 @@ resource "aws_iam_role" "backend_runtime" {
 data "aws_iam_policy_document" "backend_runtime" {
   statement {
     sid       = "PrivateAttachments"
-    actions   = ["s3:GetObject", "s3:PutObject", "s3:AbortMultipartUpload"]
+    actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:AbortMultipartUpload"]
     resources = ["${aws_s3_bucket.attachments.arn}/groups/*"]
   }
   statement {
