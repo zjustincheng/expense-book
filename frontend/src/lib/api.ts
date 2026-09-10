@@ -61,7 +61,7 @@ export async function api<T>(
   const response = await fetch(`/api${path}`, {
     method: body === undefined ? (method ?? "GET") : (method ?? "POST"),
     headers: {
-      "Content-Type": "application/json",
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       ...(key ? { "idempotency-key": key } : {}),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

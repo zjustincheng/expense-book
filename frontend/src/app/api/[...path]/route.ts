@@ -21,11 +21,12 @@ async function proxy(
     return new NextResponse(null, { status: 404 });
   const cookieJar = await cookies();
   const token = cookieJar.get("access_token")?.value;
-  const headers = new Headers({ "Content-Type": "application/json" });
+  const headers = new Headers();
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const key = request.headers.get("idempotency-key");
   if (key) headers.set("idempotency-key", key);
   const body = request.method === "GET" ? undefined : await request.text();
+  if (body) headers.set("Content-Type", "application/json");
   if (body && Buffer.byteLength(body) > 64 * 1024)
     return NextResponse.json({ error: "Request too large." }, { status: 413 });
   try {
@@ -34,7 +35,7 @@ async function proxy(
       {
         method: request.method,
         headers,
-        body,
+        body: body || undefined,
         cache: "no-store",
         signal: AbortSignal.timeout(15_000),
       },

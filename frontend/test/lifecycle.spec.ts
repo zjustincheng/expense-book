@@ -54,8 +54,23 @@ async function record(page: Page, description: string) {
   return row;
 }
 
-test("receipts upload, preview, and clear the file input", async ({ page }) => {
-  await workspace(page);
+test("receipts upload, preview, delete, and clear the file input", async ({
+  page,
+}) => {
+  const groupId = await workspace(page);
+  // Exercise the real proxy and Fastify parser, including older clients that
+  // still send a JSON header with an empty DELETE body.
+  const missing = await page.request.delete(
+    `/api/groups/${groupId}/attachments/${crypto.randomUUID()}`,
+    {
+      headers: {
+        Origin: "http://localhost:3100",
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  expect(missing.status()).toBe(404);
+  expect(await missing.json()).toEqual({ error: "Attachment not found." });
   await post(await newExpense(page, "Receipt test"));
   const receipt = {
     id: crypto.randomUUID(),
@@ -102,6 +117,15 @@ test("receipts upload, preview, and clear the file input", async ({ page }) => {
   ).toBeVisible();
   await row.getByRole("button", { name: "Close preview" }).click();
   await expect(row.getByRole("img")).toHaveCount(0);
+  await page.route(`**/attachments/${receipt.id}`, (route) => {
+    expect(route.request().method()).toBe("DELETE");
+    expect(route.request().headers()["content-type"]).toBeUndefined();
+    return route.fulfill({ json: { deleted: true } });
+  });
+  page.once("dialog", (dialog) => dialog.accept());
+  await row.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(row.getByText("receipt.png", { exact: false })).toHaveCount(0);
+  await expect(row.getByText("No receipts attached yet.")).toBeVisible();
 });
 
 test("drafts survive reload, stay out of balances, reject stale previews, and can be discarded", async ({
