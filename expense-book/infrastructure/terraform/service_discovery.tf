@@ -17,10 +17,9 @@ resource "aws_service_discovery_service" "backend" {
     }
   }
 
-  # Cloud Map only returns ECS instances to DNS when their custom status is
-  # healthy. ECS container health is checked separately by the task definition.
-  health_check_custom_config {}
-
+  # Preserve the existing DNS-only health configuration. Without a Cloud Map
+  # health check, Route 53 returns registered instances regardless of UNKNOWN
+  # API health status; ECS still monitors the container health check.
 }
 
 resource "aws_vpc_security_group_ingress_rule" "backend_from_ecs" {
