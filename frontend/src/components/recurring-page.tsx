@@ -96,14 +96,21 @@ export function RecurringPage({ groupId }: { groupId: string }) {
       );
     }
   }
-  async function generate(row: Recurring) {
+  async function generate(
+    row: Recurring,
+    mode: "next" | "catchUp" | "skip" = "next",
+  ) {
     try {
-      await api(
+      const result = await api<{ count: number; skipped: number }>(
         `/groups/${groupId}/recurring/${row.id}/generate`,
-        {},
+        { mode, expectedNextRun: row.nextRun },
         crypto.randomUUID(),
       );
-      setNotice(`Draft created from ${row.name}.`);
+      setNotice(
+        mode === "skip"
+          ? `${result.skipped} occurrences skipped; no drafts created.`
+          : `${result.count} drafts created from ${row.name}.`,
+      );
       await load();
     } catch (e) {
       setError(
@@ -176,7 +183,7 @@ export function RecurringPage({ groupId }: { groupId: string }) {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => void generateDue()}>
-            Generate due drafts
+            Generate one draft per due schedule
           </Button>
           <Button onClick={() => setShowForm(!showForm)}>
             {showForm ? "Cancel" : "Add recurring"}
@@ -258,9 +265,31 @@ export function RecurringPage({ groupId }: { groupId: string }) {
                       variant="outline"
                       onClick={() => void generate(row)}
                     >
-                      Generate draft
+                      Generate next occurrence
                     </Button>
                   </div>
+                  {overdue && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void generate(row, "catchUp")}
+                      >
+                        Catch up through today
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void generate(row, "skip")}
+                      >
+                        Skip to next future date
+                      </Button>
+                      <p className="text-xs text-stone-500">
+                        Catch up creates a draft for each missed occurrence (up
+                        to 120). Skip creates none.
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })}

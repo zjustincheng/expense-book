@@ -1,4 +1,4 @@
-import { and, asc, eq, lte } from "drizzle-orm";
+import { and, asc, eq, lte, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Database } from "../db/client.js";
@@ -12,7 +12,7 @@ import {
 import { entryInput } from "../domain/ledger.js";
 import { json } from "../lib/json.js";
 import { fail } from "../lib/errors.js";
-import { authorize } from "../services/access.js";
+import { authorize, lockGroup } from "../services/access.js";
 import { changeDraft } from "../services/drafts.js";
 
 const params = z.object({ groupId: z.string().uuid() });
@@ -22,31 +22,16 @@ const recurringInput = z.object({
   frequency: z.enum(["weekly", "monthly", "quarterly", "yearly"]),
   nextRun: z.iso.date(),
 });
-export function advanceDate(date: string, frequency: string) {
-  const value = new Date(`${date}T00:00:00Z`);
-  if (frequency === "weekly") value.setUTCDate(value.getUTCDate() + 7);
-  if (["monthly", "quarterly", "yearly"].includes(frequency)) {
-    const day = value.getUTCDate();
-    const months =
-      frequency === "monthly" ? 1 : frequency === "quarterly" ? 3 : 12;
-    const target = new Date(
-      Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + months, 1),
-    );
-    const lastDay = new Date(
-      Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
-    ).getUTCDate();
-    target.setUTCDate(Math.min(day, lastDay));
-    return target.toISOString().slice(0, 10);
-  }
-  return value.toISOString().slice(0, 10);
-}
 export function advanceAnchoredDate(
   date: string,
   frequency: string,
   anchorDay?: number | null,
 ) {
-  if (frequency === "weekly") return advanceDate(date, frequency);
   const value = new Date(`${date}T00:00:00Z`);
+  if (frequency === "weekly") {
+    value.setUTCDate(value.getUTCDate() + 7);
+    return value.toISOString().slice(0, 10);
+  }
   const day = anchorDay ?? value.getUTCDate();
   const months =
     frequency === "monthly" ? 1 : frequency === "quarterly" ? 3 : 12;
@@ -102,14 +87,13 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
       .update(recurringTransactions)
       .set({
         ...input,
-        ...(input.nextRun
-          ? {
-              anchorDay:
-                input.frequency === "weekly"
-                  ? null
-                  : Number(input.nextRun.slice(8, 10)),
-            }
-          : {}),
+        anchorDay: input.nextRun
+          ? sql`case when ${input.frequency ?? sql`${recurringTransactions.frequency}`} = 'weekly' then null when ${recurringTransactions.nextRun} = ${input.nextRun}::date then coalesce(${recurringTransactions.anchorDay}, ${Number(input.nextRun.slice(8, 10))}::integer) else ${Number(input.nextRun.slice(8, 10))}::integer end`
+          : input.frequency === "weekly"
+            ? null
+            : input.frequency
+              ? sql`coalesce(${recurringTransactions.anchorDay}, extract(day from ${recurringTransactions.nextRun})::integer)`
+              : undefined,
         updatedAt: new Date(),
       })
       .where(
@@ -172,7 +156,14 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         .extend({ recurringId: z.string().uuid() })
         .parse(request.params);
       await authorize(db, groupId, request.subject, true);
+      const { mode, expectedNextRun } = z
+        .object({
+          mode: z.enum(["next", "catchUp", "skip"]).default("next"),
+          expectedNextRun: z.iso.date().optional(),
+        })
+        .parse(request.body ?? {});
       const result = await db.transaction(async (tx) => {
+        await lockGroup(tx, groupId, request.subject);
         const [row] = await tx
           .select()
           .from(recurringTransactions)
@@ -185,21 +176,37 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
           .for("update");
         if (!row || !row.active)
           fail("Active recurring transaction not found.", 404);
-        const draft = await changeDraft(
-          tx,
-          groupId,
-          request.subject,
-          { action: "create", input: row.input },
-          crypto.randomUUID(),
-        );
+        if (expectedNextRun && expectedNextRun !== row.nextRun)
+          fail("Schedule changed. Reload before generating occurrences.", 409);
+        const today = new Date().toISOString().slice(0, 10);
+        let nextRun = row.nextRun;
+        const dates: string[] = [];
+        while (mode === "next" ? dates.length === 0 : nextRun <= today) {
+          dates.push(nextRun);
+          nextRun = advanceAnchoredDate(nextRun, row.frequency, row.anchorDay);
+          if (mode === "catchUp" && dates.length > 120)
+            fail(
+              "More than 120 occurrences are overdue. Update the next run date or skip overdue occurrences.",
+              400,
+            );
+        }
+        const created = [];
+        if (mode !== "skip") {
+          for (const date of dates)
+            created.push(
+              await changeDraft(
+                tx,
+                groupId,
+                request.subject,
+                { action: "create", input: { ...row.input, date } },
+                crypto.randomUUID(),
+              ),
+            );
+        }
         const [updated] = await tx
           .update(recurringTransactions)
           .set({
-            nextRun: advanceAnchoredDate(
-              row.nextRun,
-              row.frequency,
-              row.anchorDay,
-            ),
+            nextRun,
             updatedAt: new Date(),
           })
           .where(
@@ -209,7 +216,12 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
             ),
           )
           .returning({ nextRun: recurringTransactions.nextRun });
-        return { draft, nextRun: updated?.nextRun };
+        return {
+          draft: created[0],
+          count: created.length,
+          skipped: mode === "skip" ? dates.length : 0,
+          nextRun: updated?.nextRun,
+        };
       });
       return reply.code(201).send(result);
     },
@@ -233,6 +245,7 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
       const generated = [];
       for (const candidate of due) {
         const result = await db.transaction(async (tx) => {
+          await lockGroup(tx, groupId, request.subject);
           const [row] = await tx
             .select()
             .from(recurringTransactions)
@@ -243,12 +256,18 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
               ),
             )
             .for("update");
-          if (!row || !row.active || row.nextRun > today) return null;
+          if (
+            !row ||
+            !row.active ||
+            row.nextRun > today ||
+            row.nextRun !== candidate.nextRun
+          )
+            return null;
           const draft = await changeDraft(
             tx,
             groupId,
             request.subject,
-            { action: "create", input: row.input },
+            { action: "create", input: { ...row.input, date: row.nextRun } },
             crypto.randomUUID(),
           );
           await tx
