@@ -9,7 +9,6 @@ import {
   deleteObject,
   downloadUrl,
   objectKey,
-  objectExists,
   uploadUrl,
   type AttachmentStorage,
 } from "../services/attachments.js";
@@ -33,10 +32,8 @@ export function registerAttachmentRoutes(
   app.get("/groups/:groupId/entries/:entryId/attachments", async (request) => {
     const { groupId, entryId } = params.parse(request.params);
     await authorize(db, groupId, request.subject);
-    if (!storage) fail("Attachment storage is not configured.", 503);
-    const rows = await db
+    return db
       .select({
-        objectKey: attachments.objectKey,
         id: attachments.id,
         fileName: attachments.fileName,
         contentType: attachments.contentType,
@@ -47,21 +44,6 @@ export function registerAttachmentRoutes(
       .where(
         and(eq(attachments.groupId, groupId), eq(attachments.entryId, entryId)),
       );
-    const valid = await Promise.all(
-      rows.map(async (row) =>
-        (await objectExists(storage, row.objectKey)) ? row : null,
-      ),
-    );
-    await Promise.all(
-      valid.map((row, index) =>
-        row
-          ? undefined
-          : db.delete(attachments).where(eq(attachments.id, rows[index]!.id)),
-      ),
-    );
-    return valid
-      .filter((row): row is NonNullable<typeof row> => row !== null)
-      .map(({ objectKey: _, ...row }) => row);
   });
   app.post(
     "/groups/:groupId/entries/:entryId/attachments",

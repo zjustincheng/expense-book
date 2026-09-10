@@ -18,6 +18,7 @@ let database: Awaited<ReturnType<typeof testDatabase>>;
 let app: Awaited<ReturnType<typeof createApp>>;
 let groupId: string;
 let attachmentId: string;
+let entryId: string;
 const client = new S3Client({
   region: "us-east-1",
   credentials: { accessKeyId: "test", secretAccessKey: "test" },
@@ -80,6 +81,7 @@ beforeEach(async () => {
     payload: { command, previewId: preview.json().previewId },
   });
   expect(posted.statusCode).toBe(201);
+  entryId = posted.json().entryIds[0];
   const [attachment] = await database.db
     .insert(attachments)
     .values({
@@ -107,6 +109,73 @@ const saved = () =>
     .select()
     .from(attachments)
     .where(eq(attachments.id, attachmentId));
+
+it.each(["SlowDown", "TimeoutError", "AccessDenied", "NotFound"])(
+  "listing preserves attachment records without S3 calls when storage would return %s",
+  async (name) => {
+    send.mockRejectedValue(Object.assign(new Error(name), { name }));
+    const response = await app.inject({
+      url: `/api/groups/${groupId}/entries/${entryId}/attachments`,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toHaveLength(1);
+    expect(response.json()[0].id).toBe(attachmentId);
+    expect(response.json()[0]).not.toHaveProperty("objectKey");
+    expect(await saved()).toHaveLength(1);
+    expect(send).not.toHaveBeenCalled();
+  },
+);
+
+it("lists attachments with no storage configured", async () => {
+  const withoutStorage = await createApp(
+    database.db,
+    async () => ({
+      subject: "alice",
+      verifiedEmail: async () => "alice@example.test",
+    }),
+    { logging: false },
+  );
+  try {
+    const response = await withoutStorage.inject({
+      url: `/api/groups/${groupId}/entries/${entryId}/attachments`,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()[0].id).toBe(attachmentId);
+    expect(await saved()).toHaveLength(1);
+  } finally {
+    await withoutStorage.close();
+  }
+});
+
+it("does not remove a newly reserved attachment before its upload finishes", async () => {
+  const reserved = await app.inject({
+    method: "POST",
+    url: `/api/groups/${groupId}/entries/${entryId}/attachments`,
+    payload: {
+      fileName: "pending.pdf",
+      contentType: "application/pdf",
+      size: 120,
+    },
+  });
+  expect(reserved.statusCode).toBe(201);
+  send.mockRejectedValue(
+    Object.assign(new Error("Not uploaded yet"), { name: "NotFound" }),
+  );
+  const response = await app.inject({
+    url: `/api/groups/${groupId}/entries/${entryId}/attachments`,
+  });
+  expect(response.statusCode).toBe(200);
+  expect(response.json().map((row: { id: string }) => row.id)).toContain(
+    reserved.json().id,
+  );
+  expect(
+    await database.db
+      .select()
+      .from(attachments)
+      .where(eq(attachments.id, reserved.json().id)),
+  ).toHaveLength(1);
+  expect(send).not.toHaveBeenCalled();
+});
 
 it("deletes a PDF from storage before removing its database link", async () => {
   send.mockImplementationOnce(async () => {

@@ -725,15 +725,6 @@ export function Dashboard({
                   value: group.totals.unsettled,
                   icon: Users,
                 },
-                ...(group.openingBalanceDate
-                  ? [
-                      {
-                        label: "Opening balance",
-                        value: group.openingBalance ?? "0",
-                        icon: Wallet,
-                      },
-                    ]
-                  : []),
               ].map(({ label, value, icon: Icon }, i) => (
                 <section
                   key={label}
@@ -762,6 +753,19 @@ export function Dashboard({
                 </section>
               ))}
             </div>
+            {group.openingBalanceDate && (
+              <aside className="mb-8 rounded-xl border border-stone-200 bg-white p-4 text-sm">
+                <p className="font-medium">
+                  Opening balance reference:{" "}
+                  {money(group.openingBalance ?? "0", group.currency)} · As of{" "}
+                  {group.openingBalanceDate}
+                </p>
+                <p className="mt-1 text-stone-500">
+                  Historical reference only. Excluded from activity totals,
+                  member balances, and settlement suggestions.
+                </p>
+              </aside>
+            )}
             {adding && (
               <div className="mb-8">
                 <EntryForm
