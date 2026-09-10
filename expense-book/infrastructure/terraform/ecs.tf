@@ -37,7 +37,12 @@ resource "aws_ecs_task_definition" "backend" {
       { name = "NODE_ENV", value = "production" },
       { name = "AUTH_MODE", value = "jwt" },
       { name = "AWS_REGION", value = var.aws_region },
-      { name = "S3_BUCKET", value = aws_s3_bucket.attachments.id }
+      { name = "S3_BUCKET", value = aws_s3_bucket.attachments.id },
+      { name = "APP_URL", value = var.app_url },
+      { name = "JWT_ISSUER", value = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.users.id}" },
+      { name = "JWT_AUDIENCE", value = aws_cognito_user_pool_client.web.id },
+      { name = "JWT_JWKS_URL", value = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.users.id}/.well-known/jwks.json" },
+      { name = "COGNITO_DOMAIN", value = "https://${aws_cognito_user_pool_domain.users.domain}.auth.${var.aws_region}.amazoncognito.com" }
     ]
     secrets          = [{ name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.backend.arn }]
     logConfiguration = { logDriver = "awslogs", options = { awslogs-group = aws_cloudwatch_log_group.ecs.name, awslogs-region = var.aws_region, awslogs-stream-prefix = "backend" } }
