@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { api, type GroupDetail } from "@/lib/api";
 type Preview = {
@@ -19,6 +19,9 @@ export function ImportPage({ groupId }: { groupId: string }) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const busy = useRef(false);
+  const attempt = useRef<{ body: string; key: string } | null>(null);
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [payer, setPayer] = useState("");
   const [rowPayers, setRowPayers] = useState<Record<number, string>>({});
@@ -55,6 +58,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
   }, [groupId]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy.current) return;
     const file = new FormData(event.currentTarget).get("file") as File | null;
     if (!file || file.size === 0) {
       setError("Choose a CSV file first.");
@@ -64,11 +68,14 @@ export function ImportPage({ groupId }: { groupId: string }) {
     setError("");
     try {
       const nextPreview = await api<Preview>(
-          `/groups/${groupId}/import/preview`,
-          { csv: await file.text() },
-          crypto.randomUUID(),
-        );
+        `/groups/${groupId}/import/preview`,
+        { csv: await file.text() },
+        crypto.randomUUID(),
+      );
       setPreview(nextPreview);
+      setConfirmed(0);
+      setIncludeDuplicates(false);
+      attempt.current = null;
       setSelectedRows(
         nextPreview.rows
           .map((row, index) => (!row.duplicate ? index : -1))
@@ -97,41 +104,61 @@ export function ImportPage({ groupId }: { groupId: string }) {
     if (!preview) return;
     setSelectedRows(
       preview.rows
-        .map((row, index) =>
-          includeDuplicates || !row.duplicate ? index : -1,
-        )
+        .map((row, index) => (includeDuplicates || !row.duplicate ? index : -1))
         .filter((index) => index >= 0),
     );
   }
   async function confirmImport() {
-    if (!preview || !group || !payer) return;
+    if (!preview || !group || busy.current || loading || confirmed > 0) return;
+    const selected = preview.rows.filter((_, index) =>
+      selectedRows.includes(index),
+    );
+    if (!selected.length) return;
+    if (
+      selected.some((row) => row.kind === "income" || row.kind === "expense") &&
+      (!payer || !splitMembers.length)
+    ) {
+      setError(
+        "Choose who paid or received the money and at least one member to share it.",
+      );
+      return;
+    }
+    if (
+      selected.some((row) => row.kind !== "income" && row.kind !== "expense") &&
+      (!transferFrom || !transferTo || transferFrom === transferTo)
+    ) {
+      setError(
+        "Choose different From and To members for the selected direct rows.",
+      );
+      return;
+    }
+    busy.current = true;
+    setSaving(true);
+    setError("");
     const splitMemberIds = splitMembers;
     try {
+      const body = {
+        rows: preview.rows
+          .map((row, index) => ({
+            ...row,
+            selected: selectedRows.includes(index),
+            cashMemberId: rowPayers[index] ?? payer,
+          }))
+          .filter((row) => row.selected)
+          .map((row) => ({
+            ...row,
+            splitMemberIds,
+            fromMemberId: transferFrom,
+            toMemberId: transferTo,
+          })),
+      };
+      const serialized = JSON.stringify(body);
+      if (attempt.current?.body !== serialized)
+        attempt.current = { body: serialized, key: crypto.randomUUID() };
       const result = await api<{ count: number }>(
         `/groups/${groupId}/import/confirm`,
-        {
-          rows: preview.rows
-            .map((row, index) => ({
-              ...row,
-              selected: selectedRows.includes(index),
-              cashMemberId: rowPayers[index] ?? payer,
-            }))
-            .filter(
-              (row) =>
-                row.selected &&
-                (includeDuplicates || !row.duplicate) &&
-                (row.kind === "income" ||
-                  row.kind === "expense" ||
-                  (transferFrom && transferTo && transferFrom !== transferTo)),
-            )
-            .map((row) => ({
-              ...row,
-              splitMemberIds,
-              fromMemberId: transferFrom,
-              toMemberId: transferTo,
-            })),
-        },
-        crypto.randomUUID(),
+        body,
+        attempt.current.key,
       );
       setConfirmed(result.count);
       setHistory(
@@ -141,6 +168,9 @@ export function ImportPage({ groupId }: { groupId: string }) {
       setError(
         e instanceof Error ? e.message : "Unable to create import drafts.",
       );
+    } finally {
+      busy.current = false;
+      setSaving(false);
     }
   }
   return (
@@ -166,7 +196,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
         <Button type="button" variant="outline" onClick={downloadTemplate}>
           Download template
         </Button>
-        <Button disabled={loading}>
+        <Button disabled={loading || saving}>
           {loading ? "Checking…" : "Preview CSV"}
         </Button>
       </form>
@@ -236,6 +266,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
+                        disabled={saving || confirmed > 0}
                         aria-label={`Include row ${index + 1}`}
                         checked={selectedRows.includes(index)}
                         onChange={(event) =>
@@ -255,6 +286,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
                       {group &&
                       (row.kind === "income" || row.kind === "expense") ? (
                         <select
+                          disabled={saving || confirmed > 0}
                           aria-label={`Payer for row ${index + 1}`}
                           value={rowPayers[index] ?? payer}
                           onChange={(event) =>
@@ -295,15 +327,24 @@ export function ImportPage({ groupId }: { groupId: string }) {
           <p className="text-sm text-stone-500">
             {confirmed > 0
               ? `${confirmed} draft records created. Review them before posting.`
-              : "Choose who paid each imported activity row. Valid, non-duplicate income and expense rows will become drafts for review."}
+              : "Only checked rows will become drafts. Choose who paid or received income and expenses, and From/To members for direct rows. Review all drafts before posting."}
           </p>
           {group && confirmed === 0 && (
-            <div className="flex flex-wrap items-end gap-3 rounded-xl bg-stone-50 p-4">
+            <fieldset
+              disabled={saving}
+              className="flex flex-wrap items-end gap-3 rounded-xl bg-stone-50 p-4"
+            >
               <div className="flex w-full flex-wrap items-center justify-between gap-2 text-sm">
                 <span>
-                  <b>{selectedRows.length}</b> of {preview.rows.length} rows selected
+                  <b>{selectedRows.length}</b> of {preview.rows.length} rows
+                  selected
                 </span>
-                <Button type="button" size="sm" variant="outline" onClick={selectReadyRows}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={selectReadyRows}
+                >
                   Select ready rows
                 </Button>
               </div>
@@ -330,7 +371,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
                     setIncludeDuplicates(event.target.checked)
                   }
                 />
-                Include possible duplicates
+                Include possible duplicates when selecting ready rows
               </label>
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="font-medium">Shared by:</span>
@@ -387,13 +428,13 @@ export function ImportPage({ groupId }: { groupId: string }) {
               </div>
               <Button
                 onClick={() => void confirmImport()}
-                disabled={
-                  splitMembers.length === 0 || selectedRows.length === 0
-                }
+                disabled={saving || loading || selectedRows.length === 0}
               >
-                Create review drafts
+                {saving
+                  ? "Creating drafts…"
+                  : `Create review drafts (${selectedRows.length})`}
               </Button>
-            </div>
+            </fieldset>
           )}
         </section>
       )}
