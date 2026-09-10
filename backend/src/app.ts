@@ -10,6 +10,7 @@ import { registerManagementRoutes } from "./routes/management.js";
 import type { InvitationDelivery } from "./services/invitation-delivery.js";
 import type { AttachmentStorage } from "./services/attachments.js";
 import { registerAttachmentRoutes } from "./routes/attachments.js";
+import { registerHistoricalReportRoutes } from "./routes/historical-reports.js";
 export async function createApp(
   db: Database,
   authenticate: Authenticate,
@@ -79,6 +80,7 @@ export async function createApp(
       registerGroupRoutes(api, db);
       registerManagementRoutes(api, db, options.invitations);
       registerAttachmentRoutes(api, db, options.attachments);
+      registerHistoricalReportRoutes(api, db);
     },
     { prefix: "/api" },
   );

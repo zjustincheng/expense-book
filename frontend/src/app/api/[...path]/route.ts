@@ -32,7 +32,15 @@ async function proxy(
   const body =
     request.method === "DELETE" && !rawBody ? "{}" : rawBody || undefined;
   if (body) headers.set("Content-Type", "application/json");
-  if (body && Buffer.byteLength(body) > 64 * 1024)
+  const historicalUpload =
+    request.method === "POST" &&
+    path[0] === "groups" &&
+    path[2] === "historical-reports" &&
+    (path.length === 3 || (path.length === 4 && path[3] === "preview"));
+  if (
+    body &&
+    Buffer.byteLength(body) > (historicalUpload ? 2_000_000 : 64 * 1024)
+  )
     return NextResponse.json({ error: "Request too large." }, { status: 413 });
   try {
     const response = await fetch(
