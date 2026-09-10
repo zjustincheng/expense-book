@@ -19,7 +19,11 @@ type Year = {
   summaries: Section[];
   warnings: string[];
 };
-type Report = { format: "txt" | "toml"; years: Year[]; warnings: string[] };
+type Report = {
+  format: "txt" | "toml" | "csv";
+  years: Year[];
+  warnings: string[];
+};
 type Sheet = {
   id?: string;
   title: string;
@@ -101,13 +105,15 @@ export function HistoricalReports({ groupId }: { groupId: string }) {
         ? "toml"
         : file.name.toLowerCase().endsWith(".txt")
           ? "txt"
-          : null;
-      if (!format) throw new Error("Choose a .txt or .toml file.");
+          : file.name.toLowerCase().endsWith(".csv")
+            ? "csv"
+            : null;
+      if (!format) throw new Error("Choose a .txt, .toml, or .csv file.");
       show(
         await api<Sheet>(`${path}/preview`, {
           title:
             String(data.get("title")).trim() ||
-            file.name.replace(/\.(txt|toml)$/i, ""),
+            file.name.replace(/\.(txt|toml|csv)$/i, ""),
           fileName: file.name,
           source: await file.text(),
           format,
@@ -212,16 +218,21 @@ export function HistoricalReports({ groupId }: { groupId: string }) {
             </label>
             <label>
               Historical file
-              <input name="file" type="file" accept=".txt,.toml" required />
+              <input
+                name="file"
+                type="file"
+                accept=".txt,.toml,.csv"
+                required
+              />
             </label>
             <Button>
               {pending ? "Working…" : "Preview historical report"}
             </Button>
           </fieldset>
           <p className="mt-3 text-xs text-stone-500">
-            Supports the yearly TXT balance-sheet format and rental-house TOML
-            format. Maximum 1 MB. Currency uses the group’s {group.currency}{" "}
-            setting; no currency conversion is performed.
+            Supports yearly TXT, rental-house TOML, and CSV files with year and
+            amount columns. Maximum 1 MB. Currency uses the group’s{" "}
+            {group.currency} setting; no currency conversion is performed.
           </p>
         </form>
       )}

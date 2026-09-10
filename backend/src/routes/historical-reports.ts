@@ -12,7 +12,7 @@ const groupParams = z.object({ groupId: z.string().uuid() });
 const inputSchema = z.object({
   title: z.string().trim().min(1).max(120),
   fileName: z.string().trim().min(1).max(180),
-  format: z.enum(["txt", "toml"]),
+  format: z.enum(["txt", "toml", "csv"]),
   source: z.string().min(1).max(1_000_000),
 });
 function parseInput(body: unknown) {
