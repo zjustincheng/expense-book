@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import { sql } from "drizzle-orm";
+import { PublicError } from "./lib/errors.js";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { z, ZodError } from "zod";
@@ -57,7 +58,7 @@ export async function createApp(
       );
     return reply.code(status).send({
       error:
-        status < 500 && error instanceof Error
+        (status < 500 || error instanceof PublicError) && error instanceof Error
           ? error.message
           : "The request could not be completed.",
     });

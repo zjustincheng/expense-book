@@ -235,6 +235,7 @@ export function RecurringPage({ groupId }: { groupId: string }) {
             .map((row) => {
               const overdue =
                 row.nextRun < new Date().toISOString().slice(0, 10);
+              const due = row.nextRun <= new Date().toISOString().slice(0, 10);
               return (
                 <div
                   key={`calendar-${row.id}`}
@@ -258,7 +259,7 @@ export function RecurringPage({ groupId }: { groupId: string }) {
                     <span
                       className={`text-xs font-medium ${overdue ? "text-amber-700" : "text-emerald-700"}`}
                     >
-                      {overdue ? "Overdue" : "Scheduled"}
+                      {overdue ? "Overdue" : due ? "Due today" : "Scheduled"}
                     </span>
                     <Button
                       size="sm"
@@ -268,7 +269,7 @@ export function RecurringPage({ groupId }: { groupId: string }) {
                       Generate next occurrence
                     </Button>
                   </div>
-                  {overdue && (
+                  {due && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button
                         size="sm"

@@ -149,7 +149,12 @@ it.each(["NotFound", "SlowDown", "AccessDenied"])(
       .set({ uploadState: "pending" })
       .where(eq(attachments.id, attachmentId));
     send.mockRejectedValue(Object.assign(new Error(name), { name }));
-    expect((await complete()).statusCode).toBe(name === "NotFound" ? 409 : 503);
+    const response = await complete();
+    expect(response.statusCode).toBe(name === "NotFound" ? 409 : 503);
+    if (name !== "NotFound")
+      expect(response.json().error).toBe(
+        "Unable to verify the upload. Please try again.",
+      );
     expect((await saved())[0]?.uploadState).toBe("pending");
   },
 );

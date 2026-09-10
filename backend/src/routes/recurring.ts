@@ -181,9 +181,12 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         const today = new Date().toISOString().slice(0, 10);
         let nextRun = row.nextRun;
         const dates: string[] = [];
+        let skipped = 0;
         while (mode === "next" ? dates.length === 0 : nextRun <= today) {
-          dates.push(nextRun);
+          if (mode === "skip") skipped++;
+          else dates.push(nextRun);
           nextRun = advanceAnchoredDate(nextRun, row.frequency, row.anchorDay);
+          // Bound draft creation, not skipping: skip stores no occurrence list.
           if (mode === "catchUp" && dates.length > 120)
             fail(
               "More than 120 occurrences are overdue. Update the next run date or skip overdue occurrences.",
@@ -219,7 +222,7 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         return {
           draft: created[0],
           count: created.length,
-          skipped: mode === "skip" ? dates.length : 0,
+          skipped,
           nextRun: updated?.nextRun,
         };
       });
