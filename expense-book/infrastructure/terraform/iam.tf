@@ -15,6 +15,18 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
   role       = aws_iam_role.ecs_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
+data "aws_iam_policy_document" "ecs_execution_secret" {
+  statement {
+    sid       = "ReadBackendRuntimeSecret"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_secretsmanager_secret.backend.arn]
+  }
+}
+resource "aws_iam_role_policy" "ecs_execution_secret" {
+  name   = "${local.name}-ecs-execution-secret"
+  role   = aws_iam_role.ecs_execution.id
+  policy = data.aws_iam_policy_document.ecs_execution_secret.json
+}
 resource "aws_iam_role" "backend_runtime" {
   name               = "${local.name}-backend-runtime"
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume.json
