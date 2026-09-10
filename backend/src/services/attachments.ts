@@ -26,6 +26,7 @@ export async function uploadUrl(
   storage: AttachmentStorage,
   key: string,
   contentType: string,
+  size: number,
 ) {
   return getSignedUrl(
     storage.client,
@@ -33,6 +34,7 @@ export async function uploadUrl(
       Bucket: storage.bucket,
       Key: key,
       ContentType: contentType,
+      ContentLength: size,
     }),
     { expiresIn: 300 },
   );

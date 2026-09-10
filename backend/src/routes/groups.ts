@@ -305,6 +305,12 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
       .from(members)
       .where(and(eq(members.groupId, groupId), eq(members.id, memberId)));
     if (!member) fail("Member not found.", 404);
+    const [balance] = await db
+      .select({
+        outstanding: sql<string>`coalesce(sum(${effects.allocatedIncome} - ${effects.allocatedExpense} - ${effects.activityCash} - ${effects.transferCash} - ${effects.settlementCash} + ${effects.obligation} + ${effects.correction}), 0)`,
+      })
+      .from(effects)
+      .where(and(eq(effects.groupId, groupId), eq(effects.memberId, memberId)));
     const rows = await db
       .select({ entry: entries, effect: effects })
       .from(effects)
@@ -321,10 +327,7 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
     return json({
       member: {
         ...member,
-        outstanding: rows.reduce(
-          (sum, row) => sum + outstanding(row.effect),
-          0n,
-        ),
+        outstanding: BigInt(balance?.outstanding ?? "0"),
       },
       records: rows.map((row) => ({ ...row.entry, effect: row.effect })),
     });

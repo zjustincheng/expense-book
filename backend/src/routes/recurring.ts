@@ -25,9 +25,19 @@ const recurringInput = z.object({
 export function advanceDate(date: string, frequency: string) {
   const value = new Date(`${date}T00:00:00Z`);
   if (frequency === "weekly") value.setUTCDate(value.getUTCDate() + 7);
-  if (frequency === "monthly") value.setUTCMonth(value.getUTCMonth() + 1);
-  if (frequency === "quarterly") value.setUTCMonth(value.getUTCMonth() + 3);
-  if (frequency === "yearly") value.setUTCFullYear(value.getUTCFullYear() + 1);
+  if (["monthly", "quarterly", "yearly"].includes(frequency)) {
+    const day = value.getUTCDate();
+    const months =
+      frequency === "monthly" ? 1 : frequency === "quarterly" ? 3 : 12;
+    const target = new Date(
+      Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + months, 1),
+    );
+    const lastDay = new Date(
+      Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+    ).getUTCDate();
+    target.setUTCDate(Math.min(day, lastDay));
+    return target.toISOString().slice(0, 10);
+  }
   return value.toISOString().slice(0, 10);
 }
 export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
@@ -124,38 +134,42 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         .extend({ recurringId: z.string().uuid() })
         .parse(request.params);
       await authorize(db, groupId, request.subject, true);
-      const [row] = await db
-        .select()
-        .from(recurringTransactions)
-        .where(
-          and(
-            eq(recurringTransactions.groupId, groupId),
-            eq(recurringTransactions.id, recurringId),
-          ),
+      const result = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .select()
+          .from(recurringTransactions)
+          .where(
+            and(
+              eq(recurringTransactions.groupId, groupId),
+              eq(recurringTransactions.id, recurringId),
+            ),
+          )
+          .for("update");
+        if (!row || !row.active)
+          fail("Active recurring transaction not found.", 404);
+        const draft = await changeDraft(
+          tx,
+          groupId,
+          request.subject,
+          { action: "create", input: row.input },
+          crypto.randomUUID(),
         );
-      if (!row || !row.active)
-        fail("Active recurring transaction not found.", 404);
-      const draft = await changeDraft(
-        db,
-        groupId,
-        request.subject,
-        { action: "create", input: row.input },
-        crypto.randomUUID(),
-      );
-      const [updated] = await db
-        .update(recurringTransactions)
-        .set({
-          nextRun: advanceDate(row.nextRun, row.frequency),
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(recurringTransactions.groupId, groupId),
-            eq(recurringTransactions.id, recurringId),
-          ),
-        )
-        .returning({ nextRun: recurringTransactions.nextRun });
-      return reply.code(201).send({ draft, nextRun: updated?.nextRun });
+        const [updated] = await tx
+          .update(recurringTransactions)
+          .set({
+            nextRun: advanceDate(row.nextRun, row.frequency),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(recurringTransactions.groupId, groupId),
+              eq(recurringTransactions.id, recurringId),
+            ),
+          )
+          .returning({ nextRun: recurringTransactions.nextRun });
+        return { draft, nextRun: updated?.nextRun };
+      });
+      return reply.code(201).send(result);
     },
   );
   app.post(
@@ -175,27 +189,41 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
           ),
         );
       const generated = [];
-      for (const row of due) {
-        const draft = await changeDraft(
-          db,
-          groupId,
-          request.subject,
-          { action: "create", input: row.input },
-          crypto.randomUUID(),
-        );
-        await db
-          .update(recurringTransactions)
-          .set({
-            nextRun: advanceDate(row.nextRun, row.frequency),
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(recurringTransactions.groupId, groupId),
-              eq(recurringTransactions.id, row.id),
-            ),
+      for (const candidate of due) {
+        const result = await db.transaction(async (tx) => {
+          const [row] = await tx
+            .select()
+            .from(recurringTransactions)
+            .where(
+              and(
+                eq(recurringTransactions.groupId, groupId),
+                eq(recurringTransactions.id, candidate.id),
+              ),
+            )
+            .for("update");
+          if (!row || !row.active || row.nextRun > today) return null;
+          const draft = await changeDraft(
+            tx,
+            groupId,
+            request.subject,
+            { action: "create", input: row.input },
+            crypto.randomUUID(),
           );
-        generated.push({ id: row.id, name: row.name, draft });
+          await tx
+            .update(recurringTransactions)
+            .set({
+              nextRun: advanceDate(row.nextRun, row.frequency),
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(recurringTransactions.groupId, groupId),
+                eq(recurringTransactions.id, row.id),
+              ),
+            );
+          return { id: row.id, name: row.name, draft };
+        });
+        if (result) generated.push(result);
       }
       return reply.code(201).send({ generated, count: generated.length });
     },

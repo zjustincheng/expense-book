@@ -7,6 +7,7 @@ import {
   effects,
   entries,
   financialRequests,
+  groups,
   members,
   previews,
 } from "../db/schema.js";
@@ -347,6 +348,10 @@ export function financialService(db: Database) {
         await tx
           .insert(financialRequests)
           .values({ groupId, actor, key, requestHash: hash, entryIds });
+        await tx
+          .update(groups)
+          .set({ ledgerVersion: sql`${groups.ledgerVersion} + 1` })
+          .where(eq(groups.id, groupId));
         return { entryIds };
       });
     },
