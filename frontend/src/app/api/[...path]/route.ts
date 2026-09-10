@@ -25,7 +25,12 @@ async function proxy(
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const key = request.headers.get("idempotency-key");
   if (key) headers.set("idempotency-key", key);
-  const body = request.method === "GET" ? undefined : await request.text();
+  const rawBody = request.method === "GET" ? "" : await request.text();
+  // Fastify's JSON parser rejects an empty body when an older browser tab
+  // still sends application/json for a DELETE. DELETE handlers ignore the
+  // payload, so normalize it to a valid empty JSON object at the proxy.
+  const body =
+    request.method === "DELETE" && !rawBody ? "{}" : rawBody || undefined;
   if (body) headers.set("Content-Type", "application/json");
   if (body && Buffer.byteLength(body) > 64 * 1024)
     return NextResponse.json({ error: "Request too large." }, { status: 413 });
@@ -35,7 +40,7 @@ async function proxy(
       {
         method: request.method,
         headers,
-        body: body || undefined,
+        body,
         cache: "no-store",
         signal: AbortSignal.timeout(15_000),
       },
