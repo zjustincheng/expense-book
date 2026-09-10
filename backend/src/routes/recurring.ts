@@ -22,6 +22,11 @@ const recurringInput = z.object({
   frequency: z.enum(["weekly", "monthly", "quarterly", "yearly"]),
   nextRun: z.iso.date(),
 });
+/** Advance one period, clamping to the length of the month landed on. The anchor
+ *  is the day originally chosen, not the day currently scheduled, so a schedule
+ *  set to the 31st returns to the 31st after February instead of sticking at the
+ *  28th for good. A schedule carrying no anchor falls back to its current day,
+ *  which is the most that can be recovered once drift has happened. */
 export function advanceAnchoredDate(
   date: string,
   frequency: string,
@@ -87,6 +92,11 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
       .update(recurringTransactions)
       .set({
         ...input,
+        // Resolved in SQL because every branch needs the row's current values.
+        // Weekly schedules hold no anchor. Moving to a genuinely different date
+        // adopts that date's day as the new anchor. Re-saving the same date keeps
+        // the existing anchor, so renaming a schedule cannot quietly reset a
+        // month-end anchor that is currently clamped to a shorter month.
         anchorDay: input.nextRun
           ? sql`case when ${input.frequency ?? sql`${recurringTransactions.frequency}`} = 'weekly' then null when ${recurringTransactions.nextRun} = ${input.nextRun}::date then coalesce(${recurringTransactions.anchorDay}, ${Number(input.nextRun.slice(8, 10))}::integer) else ${Number(input.nextRun.slice(8, 10))}::integer end`
           : input.frequency === "weekly"
@@ -182,6 +192,10 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         let nextRun = row.nextRun;
         const dates: string[] = [];
         let skipped = 0;
+        // "next" takes a single occurrence; "catchUp" and "skip" walk everything
+        // through today. Skip counts rather than collects, because it creates no
+        // drafts and a schedule dormant for years should not build a list of
+        // dates only to throw it away.
         while (mode === "next" ? dates.length === 0 : nextRun <= today) {
           if (mode === "skip") skipped++;
           else dates.push(nextRun);

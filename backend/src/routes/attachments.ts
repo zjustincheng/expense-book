@@ -96,6 +96,10 @@ export function registerAttachmentRoutes(
       });
     },
   );
+  // Second half of the upload. The reservation row exists before the browser has
+  // sent anything, so a receipt only becomes visible once storage confirms an
+  // object matching what was reserved. A reservation that is never completed
+  // stays hidden and is swept later by cleanup-attachments.
   app.post(
     "/groups/:groupId/attachments/:attachmentId/complete",
     async (request) => {
@@ -124,6 +128,9 @@ export function registerAttachmentRoutes(
         try {
           object = await inspectObject(storage, attachment.objectKey);
         } catch (error) {
+          // Only a definite NotFound proves the upload has not landed. Every
+          // other storage failure is ambiguous, so the reservation is kept for
+          // a retry rather than judged on one bad response.
           if (error instanceof Error && error.name === "NotFound")
             fail(
               "Upload has not finished. Try again after uploading the file.",

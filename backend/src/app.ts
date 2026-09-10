@@ -56,6 +56,9 @@ export async function createApp(
         { err: { name: error instanceof Error ? error.name : "UnknownError" } },
         "Request failed",
       );
+    // Deliberate failures carry text written to be read by a person. Anything
+    // else that happens to have a statusCode is an upstream exception whose
+    // message can name a bucket, host, or credential, so it is replaced.
     return reply.code(status).send({
       error:
         (status < 500 || error instanceof PublicError) && error instanceof Error

@@ -1,6 +1,9 @@
 /** Exact rational arithmetic: expressions round once, at the currency boundary. */
 type Fraction = { n: bigint; d: bigint };
 const MAX_AMOUNT = 999_999_999_999_999n;
+/** Reduce to lowest terms with a positive denominator. Without this the
+ *  denominators multiply on every operation and a long expression grows
+ *  numerators without bound. */
 function fraction(n: bigint, d = 1n): Fraction {
   if (d === 0n) throw new Error("Cannot divide by zero.");
   if (d < 0n) {
@@ -30,9 +33,15 @@ function evaluate(
     throw new Error("Unsupported currency precision.");
   if (!expression.trim() || expression.length > 256)
     throw new Error("Enter an expression of 1–256 characters.");
+  // The trailing \S makes every unsupported character its own token, so the
+  // leftover-token check below can reject it. Without it, trailing junk is not
+  // tokenized at all and "12%" parses cleanly as 12.
   const tokens = expression.match(/\d+(?:\.\d+)?|[()+\-*/]|\S/g) ?? [];
   let position = 0;
+  // Recursive descent, loosest binding outermost: sum -> product -> primary.
   function primary(depth: number): Fraction {
+    // Only parentheses and stacked signs recurse, so this bounds the stack
+    // without rejecting anything a person would actually type.
     if (depth > 16) throw new Error("Expression is too deeply nested.");
     const token = tokens[position++];
     if (token === "+" || token === "-") {
@@ -52,6 +61,8 @@ function evaluate(
       10n ** BigInt(decimal.length),
     );
   }
+  // Each operand is a primary rather than another product, which is what makes
+  // "a / b / c" associate left. Recursing into product here would invert it.
   function product(depth: number): Fraction {
     let a = primary(depth);
     while (tokens[position] === "*" || tokens[position] === "/") {
@@ -77,6 +88,9 @@ function evaluate(
   if (position !== tokens.length)
     throw new Error("Unexpected expression token.");
   if (!signed && value.n <= 0n) throw new Error("Amount must be positive.");
+  // Round the magnitude half-up and reapply the sign afterwards, so a credit and
+  // a debit of the same size always round to the same distance from zero. Half-up
+  // on the signed value would bias every negative amount toward positive.
   const scaled = (value.n < 0n ? -value.n : value.n) * 10n ** BigInt(precision);
   const amount =
     scaled / value.d + ((scaled % value.d) * 2n >= value.d ? 1n : 0n);
@@ -85,6 +99,10 @@ function evaluate(
   return value.n < 0n ? -amount : amount;
 }
 
+/** Largest remainder: everyone takes the floor of their share, then the leftover
+ *  minor units go to the largest remainders first. Ties break on memberId so the
+ *  same inputs always yield the same cents. Refunds depend on that determinism,
+ *  because they recompute an allocation and reconcile it against the original. */
 export function allocate(
   amount: bigint,
   shares: { memberId: string; weight: bigint }[],
