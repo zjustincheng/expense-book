@@ -25,7 +25,7 @@ Use **Reports** from a group dashboard to filter posted activity by date range, 
 - `frontend/`: Next.js website, UI components, server-side authentication callback and API proxy.
 - `backend/`: Fastify API, domain calculations, authorization, Drizzle schema/migrations, tests.
 - `infrastructure/`: local PostgreSQL Compose configuration and AWS Terraform foundation.
-- `.github/workflows/`: automated quality checks. Cloud deployment automation is pending environment setup.
+- `.github/workflows/`: quality checks and ECS deployment. See [deployment setup](docs/DEPLOYMENT.md) for required GitHub settings.
 
 ## Run locally
 
