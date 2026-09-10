@@ -22,6 +22,15 @@ resource "aws_s3_bucket_versioning" "attachments" {
   bucket = aws_s3_bucket.attachments.id
   versioning_configuration { status = "Enabled" }
 }
+resource "aws_s3_bucket_cors_configuration" "attachments" {
+  bucket = aws_s3_bucket.attachments.id
+  cors_rule {
+    allowed_origins = [trimsuffix(var.app_url, "/")]
+    allowed_methods = ["GET", "HEAD", "PUT"]
+    allowed_headers = ["*"]
+    max_age_seconds = 300
+  }
+}
 resource "aws_s3_bucket_lifecycle_configuration" "attachments" {
   bucket = aws_s3_bucket.attachments.id
   rule {

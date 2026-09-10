@@ -200,6 +200,11 @@ export function RecordDetails({
     { id: string; fileName: string; contentType: string; size: number }[]
   >([]);
   const [uploading, setUploading] = useState(false);
+  const [receiptPreview, setReceiptPreview] = useState<{
+    id: string;
+    url: string;
+    name: string;
+  } | null>(null);
   const [action, setAction] = useState<"refund" | "reverse" | "correct" | null>(
     null,
   );
@@ -207,6 +212,7 @@ export function RecordDetails({
     setLoading(true);
     setError("");
     setAction(null);
+    setReceiptPreview(null);
     try {
       setDetail(await api<EntryDetail>(`/groups/${group.id}/entries/${id}`));
       setAttachments(
@@ -261,66 +267,124 @@ export function RecordDetails({
             <p>Correction reason: {detail.correctionReason}</p>
           )}
           <section className="rounded-xl border border-stone-200 p-4">
-            <h4 className="font-semibold">Attachments</h4>
+            <h4 className="font-semibold">Receipts & attachments</h4>
             <p className="mt-1 text-xs text-stone-500">
               PDF, PNG, JPEG, WebP, or text files up to 10 MB. Files are
               private.
             </p>
-            <label className="mt-3">
-              Upload attachment
-              <input
-                type="file"
-                accept="application/pdf,image/jpeg,image/png,image/webp,text/plain"
-                disabled={uploading}
-                onChange={async (event) => {
-                  const file = event.currentTarget.files?.[0];
-                  if (!file) return;
-                  setUploading(true);
-                  setError("");
-                  let createdId: string | undefined;
-                  try {
-                    const created = await api<{
-                      id: string;
-                      uploadUrl: string;
-                    }>(`/groups/${group.id}/entries/${detail.id}/attachments`, {
-                      fileName: file.name,
-                      contentType: file.type,
-                      size: file.size,
-                    });
-                    createdId = created.id;
-                    const response = await fetch(created.uploadUrl, {
-                      method: "PUT",
-                      headers: { "Content-Type": file.type },
-                      body: file,
-                    });
-                    if (!response.ok)
-                      throw new Error("Upload failed. Try again.");
-                    setAttachments(
-                      await api<typeof attachments>(
-                        `/groups/${group.id}/entries/${detail.id}/attachments`,
-                      ),
-                    );
-                  } catch (e) {
-                    if (createdId) {
-                      await api(
-                        `/groups/${group.id}/attachments/${createdId}`,
-                        undefined,
-                        crypto.randomUUID(),
-                        "DELETE",
-                      ).catch(() => undefined);
+            {group.role !== "viewer" && (
+              <label className="mt-3">
+                Upload attachment
+                <input
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png,image/webp,text/plain"
+                  disabled={uploading}
+                  onChange={async (event) => {
+                    const input = event.currentTarget;
+                    const file = input.files?.[0];
+                    if (!file) return;
+                    if (
+                      !file.size ||
+                      file.size > 10_485_760 ||
+                      ![
+                        "application/pdf",
+                        "image/jpeg",
+                        "image/png",
+                        "image/webp",
+                        "text/plain",
+                      ].includes(file.type)
+                    ) {
+                      setError(
+                        "Choose a PDF, PNG, JPEG, WebP, or text file between 1 byte and 10 MB.",
+                      );
+                      input.value = "";
+                      return;
                     }
+                    setUploading(true);
+                    setError("");
+                    let createdId: string | undefined;
+                    let uploaded = false;
+                    try {
+                      const created = await api<{
+                        id: string;
+                        uploadUrl: string;
+                      }>(
+                        `/groups/${group.id}/entries/${detail.id}/attachments`,
+                        {
+                          fileName: file.name,
+                          contentType: file.type,
+                          size: file.size,
+                        },
+                      );
+                      createdId = created.id;
+                      const response = await fetch(created.uploadUrl, {
+                        method: "PUT",
+                        headers: { "Content-Type": file.type },
+                        body: file,
+                        signal: AbortSignal.timeout(120_000),
+                      });
+                      if (!response.ok)
+                        throw new Error("Upload failed. Try again.");
+                      uploaded = true;
+                      setAttachments(
+                        await api<typeof attachments>(
+                          `/groups/${group.id}/entries/${detail.id}/attachments`,
+                        ),
+                      );
+                    } catch (e) {
+                      if (createdId && !uploaded) {
+                        await api(
+                          `/groups/${group.id}/attachments/${createdId}`,
+                          undefined,
+                          crypto.randomUUID(),
+                          "DELETE",
+                        ).catch(() => undefined);
+                      }
+                      setError(
+                        e instanceof Error
+                          ? e.message
+                          : "Unable to upload attachment.",
+                      );
+                    } finally {
+                      setUploading(false);
+                      input.value = "";
+                    }
+                  }}
+                />
+              </label>
+            )}
+            {uploading && (
+              <p role="status" className="mt-2 text-sm">
+                Uploading receipt…
+              </p>
+            )}
+            {!attachments.length && !uploading && (
+              <p className="mt-3 text-sm text-stone-500">
+                No receipts attached yet.
+              </p>
+            )}
+            {receiptPreview && (
+              <div className="mt-3 space-y-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setReceiptPreview(null)}
+                >
+                  Close preview
+                </Button>
+                <img
+                  src={receiptPreview.url}
+                  alt={`Receipt: ${receiptPreview.name}`}
+                  className="max-h-96 max-w-full rounded-lg object-contain"
+                  onError={() => {
+                    setReceiptPreview(null);
                     setError(
-                      e instanceof Error
-                        ? e.message
-                        : "Unable to upload attachment.",
+                      "Preview unavailable or expired. Try Preview again, or download the file.",
                     );
-                  } finally {
-                    setUploading(false);
-                    event.currentTarget.value = "";
-                  }
-                }}
-              />
-            </label>
+                  }}
+                />
+              </div>
+            )}
             {attachments.map((attachment) => (
               <div
                 key={attachment.id}
@@ -332,6 +396,33 @@ export function RecordDetails({
                     ({Math.ceil(attachment.size / 1024)} KB)
                   </span>
                 </span>
+                {attachment.contentType.startsWith("image/") && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      setError("");
+                      try {
+                        const result = await api<{ downloadUrl: string }>(
+                          `/groups/${group.id}/attachments/${attachment.id}/download`,
+                        );
+                        setReceiptPreview({
+                          id: attachment.id,
+                          url: result.downloadUrl,
+                          name: attachment.fileName,
+                        });
+                      } catch (e) {
+                        setError(
+                          e instanceof Error
+                            ? e.message
+                            : "Unable to preview receipt.",
+                        );
+                      }
+                    }}
+                  >
+                    Preview
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
@@ -340,11 +431,7 @@ export function RecordDetails({
                       const result = await api<{ downloadUrl: string }>(
                         `/groups/${group.id}/attachments/${attachment.id}/download`,
                       );
-                      window.open(
-                        result.downloadUrl,
-                        "_blank",
-                        "noopener,noreferrer",
-                      );
+                      window.location.assign(result.downloadUrl);
                     } catch (e) {
                       setError(
                         e instanceof Error
@@ -356,33 +443,37 @@ export function RecordDetails({
                 >
                   Download
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    if (!window.confirm(`Delete ${attachment.fileName}?`))
-                      return;
-                    try {
-                      await api(
-                        `/groups/${group.id}/attachments/${attachment.id}`,
-                        undefined,
-                        crypto.randomUUID(),
-                        "DELETE",
-                      );
-                      setAttachments((current) =>
-                        current.filter((item) => item.id !== attachment.id),
-                      );
-                    } catch (e) {
-                      setError(
-                        e instanceof Error
-                          ? e.message
-                          : "Unable to delete attachment.",
-                      );
-                    }
-                  }}
-                >
-                  Delete
-                </Button>
+                {group.role !== "viewer" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      if (!window.confirm(`Delete ${attachment.fileName}?`))
+                        return;
+                      try {
+                        await api(
+                          `/groups/${group.id}/attachments/${attachment.id}`,
+                          undefined,
+                          crypto.randomUUID(),
+                          "DELETE",
+                        );
+                        setAttachments((current) =>
+                          current.filter((item) => item.id !== attachment.id),
+                        );
+                        if (receiptPreview?.id === attachment.id)
+                          setReceiptPreview(null);
+                      } catch (e) {
+                        setError(
+                          e instanceof Error
+                            ? e.message
+                            : "Unable to delete attachment.",
+                        );
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                )}
               </div>
             ))}
           </section>

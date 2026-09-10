@@ -10,7 +10,12 @@ import {
   it,
 } from "vitest";
 import { createApp } from "../src/app.js";
-import { drafts, invitations, managementEvents } from "../src/db/schema.js";
+import {
+  access,
+  drafts,
+  invitations,
+  managementEvents,
+} from "../src/db/schema.js";
 import { testDatabase } from "./test-database.js";
 
 let database: Awaited<ReturnType<typeof testDatabase>>;
@@ -81,6 +86,28 @@ const call = (
     ...(payload === undefined ? {} : { payload: payload as object }),
   });
 const settings = async () => (await call("alice", group("/settings"))).json();
+it("blocks viewers from uploading or deleting attachments", async () => {
+  await database.db
+    .insert(access)
+    .values({ groupId, subject: "reader", role: "viewer" });
+  const upload = await call(
+    "reader",
+    group(`/entries/${randomUUID()}/attachments`),
+    { fileName: "receipt.png", contentType: "image/png", size: 100 },
+  );
+  expect(upload.statusCode).toBe(403);
+  const removal = await app.inject({
+    method: "DELETE",
+    url: group(`/attachments/${randomUUID()}`),
+    headers: { "x-test-subject": "reader" },
+  });
+  expect(removal.statusCode).toBe(403);
+  const list = await call(
+    "reader",
+    group(`/entries/${randomUUID()}/attachments`),
+  );
+  expect(list.statusCode).toBe(200);
+});
 it("returns saved opening references without changing member balances", async () => {
   expect(await settings()).toMatchObject({
     currency: "USD",
