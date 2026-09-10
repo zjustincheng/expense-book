@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DeleteAttachment } from "@/components/delete-attachment";
 import { BalancePreview } from "@/components/balance-preview";
 import { EntryForm } from "@/components/entry-form";
 import { api, minorUnits, money, today, type GroupDetail } from "@/lib/api";
@@ -444,35 +445,18 @@ export function RecordDetails({
                   Download
                 </Button>
                 {group.role !== "viewer" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={async () => {
-                      if (!window.confirm(`Delete ${attachment.fileName}?`))
-                        return;
-                      try {
-                        await api(
-                          `/groups/${group.id}/attachments/${attachment.id}`,
-                          undefined,
-                          crypto.randomUUID(),
-                          "DELETE",
-                        );
-                        setAttachments((current) =>
-                          current.filter((item) => item.id !== attachment.id),
-                        );
-                        if (receiptPreview?.id === attachment.id)
-                          setReceiptPreview(null);
-                      } catch (e) {
-                        setError(
-                          e instanceof Error
-                            ? e.message
-                            : "Unable to delete attachment.",
-                        );
-                      }
+                  <DeleteAttachment
+                    groupId={group.id}
+                    attachment={attachment}
+                    onDeleted={() => {
+                      setAttachments((current) =>
+                        current.filter((item) => item.id !== attachment.id),
+                      );
+                      if (receiptPreview?.id === attachment.id)
+                        setReceiptPreview(null);
+                      setError("");
                     }}
-                  >
-                    Delete
-                  </Button>
+                  />
                 )}
               </div>
             ))}
