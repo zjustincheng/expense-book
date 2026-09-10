@@ -5,56 +5,86 @@ on:
     branches: [main]
 permissions:
   contents: read
-  id-token: write
 concurrency:
   group: deploy-${{ vars.ENVIRONMENT }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
-  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
   ENVIRONMENT: ${{ vars.ENVIRONMENT }}
   NAME_PREFIX: ${{ vars.NAME_PREFIX }}
 jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
   deploy:
+    needs: checks
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
     environment: ${{ vars.ENVIRONMENT }}
     steps:
       - uses: actions/checkout@v4
+      - name: Validate deployment configuration
+        env:
+          DEPLOY_ROLE: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+        run: |
+          for setting in AWS_REGION ENVIRONMENT NAME_PREFIX DEPLOY_ROLE; do
+            if [ -z "${!setting}" ]; then
+              echo "::error::Missing deployment setting: $setting"
+              exit 1
+            fi
+          done
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
       - uses: aws-actions/amazon-ecr-login@v2
         id: ecr
+      - name: Read task definitions used by the current services
+        run: |
+          for component in backend frontend; do
+            task_arn=$(aws ecs describe-services \
+              --cluster "$NAME_PREFIX-$ENVIRONMENT" \
+              --services "$NAME_PREFIX-$ENVIRONMENT-$component" \
+              --query 'services[0].taskDefinition' --output text)
+            if [ -z "$task_arn" ] || [ "$task_arn" = "None" ]; then
+              echo "::error::No task definition found for $component"
+              exit 1
+            fi
+            aws ecs describe-task-definition --task-definition "$task_arn" \
+              --query taskDefinition > "$RUNNER_TEMP/$component-task.json"
+          done
       - name: Build and push images
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
-          docker build -f frontend/Dockerfile -t "$REGISTRY/$NAME_PREFIX-$ENVIRONMENT/frontend:${GITHUB_SHA}" .
-          docker build -f backend/Dockerfile -t "$REGISTRY/$NAME_PREFIX-$ENVIRONMENT/backend:${GITHUB_SHA}" .
+          docker build --platform linux/amd64 -f frontend/Dockerfile -t "$REGISTRY/$NAME_PREFIX-$ENVIRONMENT/frontend:${GITHUB_SHA}" .
+          docker build --platform linux/amd64 -f backend/Dockerfile -t "$REGISTRY/$NAME_PREFIX-$ENVIRONMENT/backend:${GITHUB_SHA}" .
           docker push "$REGISTRY/$NAME_PREFIX-$ENVIRONMENT/frontend:${GITHUB_SHA}"
           docker push "$REGISTRY/$NAME_PREFIX-$ENVIRONMENT/backend:${GITHUB_SHA}"
       - uses: aws-actions/amazon-ecs-render-task-definition@v1
         id: render-frontend
         with:
-          task-definition: ${{ vars.FRONTEND_TASK_DEFINITION }}
+          task-definition: ${{ runner.temp }}/frontend-task.json
           container-name: frontend
           image: ${{ steps.ecr.outputs.registry }}/${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}/frontend:${{ github.sha }}
       - uses: aws-actions/amazon-ecs-render-task-definition@v1
         id: render-backend
         with:
-          task-definition: ${{ vars.BACKEND_TASK_DEFINITION }}
+          task-definition: ${{ runner.temp }}/backend-task.json
           container-name: backend
           image: ${{ steps.ecr.outputs.registry }}/${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}/backend:${{ github.sha }}
       - uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ steps.render-frontend.outputs.task-definition }}
-          service: ${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}-frontend
+          task-definition: ${{ steps.render-backend.outputs.task-definition }}
+          service: ${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}-backend
           cluster: ${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}
           wait-for-service-stability: true
       - uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ steps.render-backend.outputs.task-definition }}
-          service: ${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}-backend
+          task-definition: ${{ steps.render-frontend.outputs.task-definition }}
+          service: ${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}-frontend
           cluster: ${{ env.NAME_PREFIX }}-${{ env.ENVIRONMENT }}
           wait-for-service-stability: true
