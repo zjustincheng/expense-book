@@ -92,6 +92,16 @@ variable "vpc_cidr" {
   default     = "10.42.0.0/16"
   description = "CIDR block for the managed VPC."
 }
+variable "github_oidc_subject" {
+  description = "Exact OIDC subject reported by the deployment workflow, including immutable owner/repository IDs when present."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.github_oidc_subject == null ? true : (startswith(var.github_oidc_subject, "repo:") && !can(regex("[?*]", var.github_oidc_subject)))
+    error_message = "Use an exact repo: subject without wildcards."
+  }
+}
+
 variable "github_repository" {
   type        = string
   default     = null
