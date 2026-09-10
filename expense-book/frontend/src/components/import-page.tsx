@@ -27,6 +27,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
   const [transferTo, setTransferTo] = useState("");
   const [confirmed, setConfirmed] = useState(0);
   const [includeDuplicates, setIncludeDuplicates] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [history, setHistory] = useState<
     { id: string; createdBy: string; rowCount: number; createdAt: string }[]
   >([]);
@@ -62,12 +63,16 @@ export function ImportPage({ groupId }: { groupId: string }) {
     setLoading(true);
     setError("");
     try {
-      setPreview(
-        await api<Preview>(
+      const nextPreview = await api<Preview>(
           `/groups/${groupId}/import/preview`,
           { csv: await file.text() },
           crypto.randomUUID(),
-        ),
+        );
+      setPreview(nextPreview);
+      setSelectedRows(
+        nextPreview.rows
+          .map((row, index) => (!row.duplicate ? index : -1))
+          .filter((index) => index >= 0),
       );
       setRowPayers({});
     } catch (e) {
@@ -75,6 +80,28 @@ export function ImportPage({ groupId }: { groupId: string }) {
     } finally {
       setLoading(false);
     }
+  }
+  function downloadTemplate() {
+    const csv =
+      "date,description,kind,amount,project,category\n" +
+      "2026-01-02,Hotel,expense,125.50,Trip,Lodging\n" +
+      "2026-01-03,Paycheck,income,2000,,Salary\n";
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "expense-book-import-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  function selectReadyRows() {
+    if (!preview) return;
+    setSelectedRows(
+      preview.rows
+        .map((row, index) =>
+          includeDuplicates || !row.duplicate ? index : -1,
+        )
+        .filter((index) => index >= 0),
+    );
   }
   async function confirmImport() {
     if (!preview || !group || !payer) return;
@@ -86,10 +113,12 @@ export function ImportPage({ groupId }: { groupId: string }) {
           rows: preview.rows
             .map((row, index) => ({
               ...row,
+              selected: selectedRows.includes(index),
               cashMemberId: rowPayers[index] ?? payer,
             }))
             .filter(
               (row) =>
+                row.selected &&
                 (includeDuplicates || !row.duplicate) &&
                 (row.kind === "income" ||
                   row.kind === "expense" ||
@@ -134,6 +163,9 @@ export function ImportPage({ groupId }: { groupId: string }) {
           CSV file
           <input name="file" type="file" accept=".csv,text/csv" required />
         </label>
+        <Button type="button" variant="outline" onClick={downloadTemplate}>
+          Download template
+        </Button>
         <Button disabled={loading}>
           {loading ? "Checking…" : "Preview CSV"}
         </Button>
@@ -180,6 +212,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-stone-200 bg-stone-50">
                 <tr>
+                  <th className="w-12 px-4 py-3 font-medium">Include</th>
                   {[
                     "Date",
                     "Description",
@@ -200,6 +233,20 @@ export function ImportPage({ groupId }: { groupId: string }) {
                     key={`${row.date}-${row.description}-${index}`}
                     className="border-b border-stone-100"
                   >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Include row ${index + 1}`}
+                        checked={selectedRows.includes(index)}
+                        onChange={(event) =>
+                          setSelectedRows(
+                            event.target.checked
+                              ? [...selectedRows, index]
+                              : selectedRows.filter((value) => value !== index),
+                          )
+                        }
+                      />
+                    </td>
                     <td className="px-4 py-3">{row.date}</td>
                     <td className="px-4 py-3">{row.description}</td>
                     <td className="px-4 py-3">{row.kind}</td>
@@ -252,6 +299,14 @@ export function ImportPage({ groupId }: { groupId: string }) {
           </p>
           {group && confirmed === 0 && (
             <div className="flex flex-wrap items-end gap-3 rounded-xl bg-stone-50 p-4">
+              <div className="flex w-full flex-wrap items-center justify-between gap-2 text-sm">
+                <span>
+                  <b>{selectedRows.length}</b> of {preview.rows.length} rows selected
+                </span>
+                <Button type="button" size="sm" variant="outline" onClick={selectReadyRows}>
+                  Select ready rows
+                </Button>
+              </div>
               <label>
                 Payer for imported rows
                 <select
@@ -333,16 +388,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
               <Button
                 onClick={() => void confirmImport()}
                 disabled={
-                  splitMembers.length === 0 ||
-                  !preview.rows.some(
-                    (row) =>
-                      (includeDuplicates || !row.duplicate) &&
-                      (row.kind === "income" ||
-                        row.kind === "expense" ||
-                        (transferFrom &&
-                          transferTo &&
-                          transferFrom !== transferTo)),
-                  )
+                  splitMembers.length === 0 || selectedRows.length === 0
                 }
               >
                 Create review drafts
