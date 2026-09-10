@@ -38,7 +38,9 @@ test("group tools load, empty reports export, and CSV imports create review draf
   ).toBeVisible();
   await page.goto(`${path}/recurring`);
   await expect(page.getByText("No upcoming schedules.")).toBeVisible();
-  await page.getByRole("button", { name: "Generate due drafts" }).click();
+  await page
+    .getByRole("button", { name: "Generate one draft per due schedule" })
+    .click();
   await expect(page.getByRole("status")).toContainText("0 due drafts");
   await page.goto(`${path}/import`);
   await page.getByLabel("CSV file").setInputFiles({

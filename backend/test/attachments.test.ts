@@ -13,6 +13,7 @@ import {
 import { createApp } from "../src/app.js";
 import { attachments } from "../src/db/schema.js";
 import { testDatabase } from "./test-database.js";
+import { cleanupPendingAttachments } from "../src/services/attachment-cleanup.js";
 
 let database: Awaited<ReturnType<typeof testDatabase>>;
 let app: Awaited<ReturnType<typeof createApp>>;
@@ -110,6 +111,93 @@ const saved = () =>
     .from(attachments)
     .where(eq(attachments.id, attachmentId));
 
+const complete = () =>
+  app.inject({
+    method: "POST",
+    url: `/api/groups/${groupId}/attachments/${attachmentId}/complete`,
+    payload: {},
+  });
+
+it("only publishes a pending upload after size and type verification, with safe retries", async () => {
+  await database.db
+    .update(attachments)
+    .set({ uploadState: "pending" })
+    .where(eq(attachments.id, attachmentId));
+  expect(
+    (
+      await app.inject({
+        url: `/api/groups/${groupId}/attachments/${attachmentId}/download`,
+      })
+    ).statusCode,
+  ).toBe(409);
+  send.mockImplementation(async () => ({
+    ContentLength: 100,
+    ContentType: "application/pdf",
+  }));
+  expect((await complete()).statusCode).toBe(200);
+  expect((await saved())[0]?.uploadState).toBe("ready");
+  send.mockClear();
+  expect((await complete()).statusCode).toBe(200);
+  expect(send).not.toHaveBeenCalled();
+});
+
+it.each(["NotFound", "SlowDown", "AccessDenied"])(
+  "retains pending uploads when verification returns %s",
+  async (name) => {
+    await database.db
+      .update(attachments)
+      .set({ uploadState: "pending" })
+      .where(eq(attachments.id, attachmentId));
+    send.mockRejectedValue(Object.assign(new Error(name), { name }));
+    expect((await complete()).statusCode).toBe(name === "NotFound" ? 409 : 503);
+    expect((await saved())[0]?.uploadState).toBe("pending");
+  },
+);
+
+it.each([
+  { ContentLength: 101, ContentType: "application/pdf" },
+  { ContentLength: 100, ContentType: "text/plain" },
+])("rejects mismatched upload metadata", async (metadata) => {
+  await database.db
+    .update(attachments)
+    .set({ uploadState: "pending" })
+    .where(eq(attachments.id, attachmentId));
+  send.mockImplementation(async () => metadata);
+  expect((await complete()).statusCode).toBe(409);
+  expect((await saved())[0]?.uploadState).toBe("pending");
+});
+
+it("cleans only expired pending uploads and retains references when storage deletion fails", async () => {
+  const storage = { bucket: "test-receipts", client };
+  expect(await cleanupPendingAttachments(database.db, storage)).toEqual({
+    removed: 0,
+    failed: 0,
+  });
+  await database.db
+    .update(attachments)
+    .set({ uploadState: "pending" })
+    .where(eq(attachments.id, attachmentId));
+  expect(await cleanupPendingAttachments(database.db, storage)).toEqual({
+    removed: 0,
+    failed: 0,
+  });
+  await database.db
+    .update(attachments)
+    .set({ createdAt: new Date(Date.now() - 48 * 3600_000) })
+    .where(eq(attachments.id, attachmentId));
+  send.mockRejectedValueOnce(new Error("Temporary outage"));
+  expect(await cleanupPendingAttachments(database.db, storage)).toEqual({
+    removed: 0,
+    failed: 1,
+  });
+  expect(await saved()).toHaveLength(1);
+  expect(await cleanupPendingAttachments(database.db, storage)).toEqual({
+    removed: 1,
+    failed: 0,
+  });
+  expect(await saved()).toHaveLength(0);
+});
+
 it.each(["SlowDown", "TimeoutError", "AccessDenied", "NotFound"])(
   "listing preserves attachment records without S3 calls when storage would return %s",
   async (name) => {
@@ -165,7 +253,7 @@ it("does not remove a newly reserved attachment before its upload finishes", asy
     url: `/api/groups/${groupId}/entries/${entryId}/attachments`,
   });
   expect(response.statusCode).toBe(200);
-  expect(response.json().map((row: { id: string }) => row.id)).toContain(
+  expect(response.json().map((row: { id: string }) => row.id)).not.toContain(
     reserved.json().id,
   );
   expect(

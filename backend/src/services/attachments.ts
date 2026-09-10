@@ -3,6 +3,7 @@ import {
   S3Client,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -57,5 +58,10 @@ export async function downloadUrl(
 export async function deleteObject(storage: AttachmentStorage, key: string) {
   await storage.client.send(
     new DeleteObjectCommand({ Bucket: storage.bucket, Key: key }),
+  );
+}
+export async function inspectObject(storage: AttachmentStorage, key: string) {
+  return storage.client.send(
+    new HeadObjectCommand({ Bucket: storage.bucket, Key: key }),
   );
 }

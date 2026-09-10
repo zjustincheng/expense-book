@@ -286,6 +286,7 @@ export const attachments = pgTable(
       .references(() => groups.id),
     entryId: uuid().notNull(),
     objectKey: text().notNull().unique(),
+    uploadState: text().notNull().default("ready"),
     fileName: text().notNull(),
     contentType: text().notNull(),
     size: integer().notNull(),

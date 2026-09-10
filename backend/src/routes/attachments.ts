@@ -10,6 +10,7 @@ import {
   downloadUrl,
   objectKey,
   uploadUrl,
+  inspectObject,
   type AttachmentStorage,
 } from "../services/attachments.js";
 
@@ -42,7 +43,11 @@ export function registerAttachmentRoutes(
       })
       .from(attachments)
       .where(
-        and(eq(attachments.groupId, groupId), eq(attachments.entryId, entryId)),
+        and(
+          eq(attachments.groupId, groupId),
+          eq(attachments.entryId, entryId),
+          eq(attachments.uploadState, "ready"),
+        ),
       );
   });
   app.post(
@@ -72,6 +77,7 @@ export function registerAttachmentRoutes(
           groupId,
           entryId,
           objectKey: key,
+          uploadState: "pending",
           fileName: input.fileName,
           contentType: input.contentType,
           size: input.size,
@@ -87,6 +93,64 @@ export function registerAttachmentRoutes(
         ...created,
         uploadUrl: await uploadUrl(storage, key, input.contentType, input.size),
         expiresIn: 300,
+      });
+    },
+  );
+  app.post(
+    "/groups/:groupId/attachments/:attachmentId/complete",
+    async (request) => {
+      const { groupId, attachmentId } = z
+        .object({
+          groupId: z.string().uuid(),
+          attachmentId: z.string().uuid(),
+        })
+        .parse(request.params);
+      await authorize(db, groupId, request.subject, true);
+      if (!storage) fail("Attachment storage is not configured.", 503);
+      return db.transaction(async (tx) => {
+        const [attachment] = await tx
+          .select()
+          .from(attachments)
+          .where(
+            and(
+              eq(attachments.groupId, groupId),
+              eq(attachments.id, attachmentId),
+            ),
+          )
+          .for("update");
+        if (!attachment) fail("Attachment not found.", 404);
+        if (attachment.uploadState === "ready") return { ready: true };
+        let object;
+        try {
+          object = await inspectObject(storage, attachment.objectKey);
+        } catch (error) {
+          if (error instanceof Error && error.name === "NotFound")
+            fail(
+              "Upload has not finished. Try again after uploading the file.",
+              409,
+            );
+          fail("Unable to verify the upload. Please try again.", 503);
+        }
+        if (
+          object.ContentLength !== attachment.size ||
+          object.ContentType !== attachment.contentType
+        )
+          fail(
+            "Uploaded file size or type does not match the reserved attachment.",
+            409,
+          );
+        const updated = await tx
+          .update(attachments)
+          .set({ uploadState: "ready" })
+          .where(
+            and(
+              eq(attachments.groupId, groupId),
+              eq(attachments.id, attachmentId),
+            ),
+          )
+          .returning({ id: attachments.id });
+        if (!updated.length) fail("Attachment was removed during upload.", 409);
+        return { ready: true };
       });
     },
   );
@@ -108,6 +172,8 @@ export function registerAttachmentRoutes(
           ),
         );
       if (!attachment) fail("Attachment not found.", 404);
+      if (attachment.uploadState !== "ready")
+        fail("Upload has not been completed.", 409);
       return {
         downloadUrl: await downloadUrl(
           storage,

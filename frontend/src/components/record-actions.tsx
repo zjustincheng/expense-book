@@ -327,6 +327,10 @@ export function RecordDetails({
                       if (!response.ok)
                         throw new Error("Upload failed. Try again.");
                       uploaded = true;
+                      await api(
+                        `/groups/${group.id}/attachments/${created.id}/complete`,
+                        {},
+                      );
                       setAttachments(
                         await api<typeof attachments>(
                           `/groups/${group.id}/entries/${detail.id}/attachments`,
