@@ -17,6 +17,10 @@ resource "aws_service_discovery_service" "backend" {
     }
   }
 
+  # Cloud Map only returns ECS instances to DNS when their custom status is
+  # healthy. ECS container health is checked separately by the task definition.
+  health_check_custom_config {}
+
 }
 
 resource "aws_vpc_security_group_ingress_rule" "backend_from_ecs" {
