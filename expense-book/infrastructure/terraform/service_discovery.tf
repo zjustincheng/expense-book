@@ -16,6 +16,13 @@ resource "aws_service_discovery_service" "backend" {
       type = "A"
     }
   }
+
+  # ECS updates this custom status as tasks pass their container health check.
+  # Without it, Cloud Map leaves registered tasks UNHEALTHY and the frontend
+  # cannot resolve a usable backend instance.
+  health_check_custom_config {
+    failure_threshold = 1
+  }
 }
 
 resource "aws_vpc_security_group_ingress_rule" "backend_from_ecs" {
