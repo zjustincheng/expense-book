@@ -18,6 +18,19 @@ test("labels and split templates save, persist, and appear in record forms", asy
     .getByRole("link", { name: "Members & access", exact: true })
     .click();
   await page.getByLabel("Label name").fill("Summer trip");
+  await expect(page.getByLabel("Reference amount (USD)")).toHaveValue("0.00");
+  await page.getByLabel("Reference amount (USD)").fill("-0.50");
+  await page.getByLabel("As of date").fill("2026-01-01");
+  await page
+    .getByRole("button", { name: "Save opening balance", exact: true })
+    .click();
+  await expect(
+    page.getByText("Opening balance saved.", { exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Reference amount (USD)")).toHaveValue("-0.50");
+  await expect(page.getByLabel("As of date")).toHaveValue("2026-01-01");
+  await page.getByLabel("Label name").fill("Summer trip");
   await page.getByRole("button", { name: "Create label", exact: true }).click();
   await expect(page.getByText("Label created.", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Label name")).toHaveValue("");
