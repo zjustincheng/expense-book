@@ -26,6 +26,8 @@ The ECS cluster, services, repositories, database, and runtime secrets must alre
 
 Receipt uploads go directly from the browser to the private S3 bucket using a temporary signed URL. Apply Terraform's `aws_s3_bucket_cors_configuration.attachments` setting to allow requests from `app_url`; pushing application code alone does not apply this configuration. Verify a real upload and download on the live website after applying. Browser regression tests substitute storage responses and do not verify AWS connectivity.
 
+Receipt deletion also requires `s3:DeleteObject` in `aws_iam_role_policy.backend_runtime`, scoped to the attachment bucket's `groups/*` prefix. Apply that policy update if uploads and downloads work but deletion fails. The API keeps the database link when storage deletion fails so the operation can be retried. S3 versioning retains older object versions according to the bucket's retention policy.
+
 The workflow reads the task definitions currently assigned to both ECS services, preserving their environment variables, roles, secrets, and network-related container configuration. `FRONTEND_TASK_DEFINITION` and `BACKEND_TASK_DEFINITION` variables are no longer needed.
 
 Both images are built for `linux/amd64` and tagged with the commit SHA. The backend is deployed first; its startup runs database migrations. The frontend is deployed after the backend service stabilizes. Database changes must remain compatible with the previous frontend during rollout. A newer push does not cancel a release in progress.
