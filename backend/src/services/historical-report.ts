@@ -22,12 +22,128 @@ export type HistoricalYear = {
   warnings: string[];
 };
 export type HistoricalReport = {
-  format: "txt" | "toml";
+  format: "txt" | "toml" | "csv";
   years: HistoricalYear[];
   warnings: string[];
 };
 const sum = (lines: HistoricalLine[]) =>
   lines.reduce((total, line) => total + BigInt(line.amount ?? "0"), 0n);
+
+function csvLine(line: string) {
+  const values: string[] = [];
+  let value = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"' && quoted && line[i + 1] === '"') {
+      value += '"';
+      i++;
+    } else if (char === '"') quoted = !quoted;
+    else if (char === "," && !quoted) {
+      values.push(value.trim());
+      value = "";
+    } else value += char;
+  }
+  if (quoted) throw new Error("CSV contains an unclosed quoted value.");
+  values.push(value.trim());
+  return values;
+}
+
+function csvReport(source: string): HistoricalReport {
+  const lines = source
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((line) => line.trim());
+  if (lines.length < 2)
+    throw new Error("CSV must include a header and at least one row.");
+  const headers = csvLine(lines[0]!).map((header) =>
+    header.toLowerCase().replace(/[^a-z0-9]/g, ""),
+  );
+  const find = (...names: string[]) =>
+    names.map((name) => headers.indexOf(name)).find((index) => index >= 0) ??
+    -1;
+  const yearColumn = find("year", "date", "period");
+  const propertyColumn = find("property", "house", "address", "name");
+  const kindColumn = find("kind", "type", "category", "class");
+  const amountColumn = find("amount", "value", "total", "balance");
+  if (yearColumn < 0 || amountColumn < 0)
+    throw new Error("CSV needs year (or date) and amount (or value) columns.");
+  const report: HistoricalReport = { format: "csv", years: [], warnings: [] };
+  for (let index = 1; index < lines.length; index++) {
+    try {
+      const values = csvLine(lines[index]!);
+      const yearValue = values[yearColumn] ?? "";
+      const year = Number(/^\d{4}/.exec(yearValue)?.[0] ?? yearValue);
+      if (!Number.isInteger(year) || year < 1900 || year > 2200)
+        throw new Error("year is invalid");
+      const rawAmount = values[amountColumn]!.replace(/[$,]/g, "");
+      const amount = evaluateHistoricalAmount(rawAmount).toString();
+      const name = values[propertyColumn]?.trim() || "General";
+      const kind = (values[kindColumn] ?? "income").toLowerCase();
+      const sectionName = /cost|expense|outflow|tax|repair/.test(kind)
+        ? "cost"
+        : "income";
+      let annual = report.years.find((entry) => entry.year === year);
+      if (!annual) {
+        annual = { year, summaries: [], properties: [], warnings: [] };
+        report.years.push(annual);
+      }
+      let property = annual.properties.find((entry) => entry.name === name);
+      if (!property) {
+        property = { name, sections: [], income: null, cost: null, net: null };
+        annual.properties.push(property);
+      }
+      let section = property.sections.find(
+        (entry) => entry.name === sectionName,
+      );
+      if (!section) {
+        section = { name: sectionName, lines: [] };
+        property.sections.push(section);
+      }
+      section.lines.push({
+        label: values[find("description", "what", "item")] || sectionName,
+        expressions: [rawAmount],
+        amount,
+      });
+    } catch (error) {
+      report.warnings.push(
+        `CSV row ${index + 1}: ${error instanceof Error ? error.message : "could not be read."}`,
+      );
+    }
+  }
+  for (const annual of report.years) {
+    for (const property of annual.properties) {
+      for (const kind of ["income", "cost"] as const) {
+        const section = property.sections.find((entry) => entry.name === kind);
+        if (section) {
+          property[kind] = sum(section.lines).toString();
+          section.lines.push({
+            label: "total",
+            expressions: [],
+            amount: property[kind],
+          });
+        }
+      }
+      if (property.income !== null || property.cost !== null)
+        property.net = (
+          BigInt(property.income ?? "0") - BigInt(property.cost ?? "0")
+        ).toString();
+      property.sections.push({
+        name: "net",
+        lines: [
+          {
+            label: "total",
+            expressions: ["income − costs"],
+            amount: property.net,
+          },
+        ],
+      });
+    }
+  }
+  if (!report.years.length)
+    throw new Error("CSV did not contain any valid historical rows.");
+  return report;
+}
 
 function reconcile(year: HistoricalYear) {
   for (const summary of year.summaries) {
@@ -293,10 +409,18 @@ function tomlReport(source: string): HistoricalReport {
   return report;
 }
 
-export function parseHistoricalReport(source: string, format: "txt" | "toml") {
+export function parseHistoricalReport(
+  source: string,
+  format: "txt" | "toml" | "csv",
+) {
   if (!source.trim() || Buffer.byteLength(source) > 1_000_000)
     throw new Error("Choose a nonempty file up to 1 MB.");
-  const report = format === "txt" ? textReport(source) : tomlReport(source);
+  const report =
+    format === "txt"
+      ? textReport(source)
+      : format === "toml"
+        ? tomlReport(source)
+        : csvReport(source);
   report.years.sort((a, b) => a.year - b.year);
   return report;
 }

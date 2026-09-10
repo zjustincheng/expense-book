@@ -42,4 +42,18 @@ describe("historical report import", () => {
       "No yearly balance sheets",
     );
   });
+
+  it("detects common CSV columns and groups rows by year and property", () => {
+    const report = parseHistoricalReport(
+      "Date,House,Type,Description,Amount\n2024-01-01,Main St,expense,Tax,$100.25\n2024-02-01,Main St,income,Rent,1200",
+      "csv",
+    );
+    expect(report.years[0]?.properties[0]).toMatchObject({
+      name: "Main St",
+      income: "120000",
+      cost: "10025",
+      net: "109975",
+    });
+    expect(report.warnings).toEqual([]);
+  });
 });
