@@ -48,9 +48,9 @@ export function registerAttachmentRoutes(
   app.post(
     "/groups/:groupId/entries/:entryId/attachments",
     async (request, reply) => {
-      if (!storage) fail("Attachment storage is not configured.", 503);
       const { groupId, entryId } = params.parse(request.params);
-      await authorize(db, groupId, request.subject);
+      await authorize(db, groupId, request.subject, true);
+      if (!storage) fail("Attachment storage is not configured.", 503);
       const input = z
         .object({
           fileName: z.string().trim().min(1).max(180),
@@ -122,7 +122,7 @@ export function registerAttachmentRoutes(
     const { groupId, attachmentId } = z
       .object({ groupId: z.string().uuid(), attachmentId: z.string().uuid() })
       .parse(request.params);
-    await authorize(db, groupId, request.subject);
+    await authorize(db, groupId, request.subject, true);
     const [attachment] = await db
       .select()
       .from(attachments)

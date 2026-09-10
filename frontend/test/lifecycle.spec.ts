@@ -54,6 +54,56 @@ async function record(page: Page, description: string) {
   return row;
 }
 
+test("receipts upload, preview, and clear the file input", async ({ page }) => {
+  await workspace(page);
+  await post(await newExpense(page, "Receipt test"));
+  const receipt = {
+    id: crypto.randomUUID(),
+    fileName: "receipt.png",
+    contentType: "image/png",
+    size: 68,
+  };
+  let uploaded = false;
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=",
+    "base64",
+  );
+  await page.route("**/api/groups/*/entries/*/attachments", async (route) => {
+    if (route.request().method() === "POST")
+      return route.fulfill({
+        json: { ...receipt, uploadUrl: "http://localhost:3100/test-receipt" },
+      });
+    return route.fulfill({ json: uploaded ? [receipt] : [] });
+  });
+  await page.route("**/test-receipt", async (route) => {
+    if (route.request().method() === "PUT") {
+      uploaded = true;
+      return route.fulfill({ status: 200, body: "" });
+    }
+    return route.fulfill({ contentType: "image/png", body: png });
+  });
+  await page.route("**/attachments/*/download", (route) =>
+    route.fulfill({
+      json: { downloadUrl: "http://localhost:3100/test-receipt" },
+    }),
+  );
+  const row = await record(page, "Receipt test");
+  const input = row.getByLabel("Upload attachment");
+  await input.setInputFiles({
+    name: "receipt.png",
+    mimeType: "image/png",
+    buffer: png,
+  });
+  await expect(row.getByText("receipt.png", { exact: false })).toBeVisible();
+  await expect(input).toHaveValue("");
+  await row.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(
+    row.getByRole("img", { name: "Receipt: receipt.png" }),
+  ).toBeVisible();
+  await row.getByRole("button", { name: "Close preview" }).click();
+  await expect(row.getByRole("img")).toHaveCount(0);
+});
+
 test("drafts survive reload, stay out of balances, reject stale previews, and can be discarded", async ({
   page,
 }) => {
@@ -418,7 +468,7 @@ test("entry guidance, unsaved edits, failed previews and lost confirmations reco
     .getByRole("button", { name: "Show member balance changes" })
     .click();
   await expect(
-    inbox.getByRole("heading", { name: "Attachments", exact: true }),
+    inbox.getByRole("heading", { name: "Receipts & attachments", exact: true }),
   ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
