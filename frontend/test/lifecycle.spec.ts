@@ -104,6 +104,36 @@ test("receipts upload, preview, delete, and clear the file input", async ({
   );
   const row = await record(page, "Receipt test");
   const input = row.getByLabel("Upload attachment");
+  let failFinalization = true;
+  let cleanupCalled = false;
+  await page.route("**/attachments/*/complete", (route) =>
+    route.fulfill(
+      failFinalization
+        ? {
+            status: 503,
+            json: { error: "Unable to verify the upload. Please try again." },
+          }
+        : { json: { ready: true } },
+    ),
+  );
+  await page.route(`**/attachments/${receipt.id}`, async (route) => {
+    expect(route.request().method()).toBe("DELETE");
+    cleanupCalled = true;
+    uploaded = false;
+    await route.fulfill({ json: { deleted: true } });
+  });
+  await input.setInputFiles({
+    name: "receipt.png",
+    mimeType: "image/png",
+    buffer: png,
+  });
+  await expect(
+    row.getByText("Unable to verify the upload. Please try again."),
+  ).toBeVisible();
+  await expect.poll(() => cleanupCalled).toBe(true);
+  expect(uploaded).toBe(false);
+  await expect(input).toHaveValue("");
+  failFinalization = false;
   await input.setInputFiles({
     name: "receipt.png",
     mimeType: "image/png",
