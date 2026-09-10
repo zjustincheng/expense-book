@@ -132,6 +132,27 @@ export function HistoricalReports({ groupId }: { groupId: string }) {
     );
     window.print();
   }
+  function downloadCsv() {
+    if (!annual || !visible.length) return;
+    const escape = (value: string) => `"${value.replaceAll('"', '""')}"`;
+    const rows = [
+      ["Year", "Property", "Income", "Costs", "Net earnings"],
+      ...visible.map((row) => [
+        String(annual.year),
+        row.name,
+        row.income === null ? "" : money(row.income, sheet?.currency ?? "USD"),
+        row.cost === null ? "" : money(row.cost, sheet?.currency ?? "USD"),
+        row.net === null ? "" : money(row.net, sheet?.currency ?? "USD"),
+      ]),
+    ];
+    const csv = rows.map((row) => row.map(escape).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${sheet?.title ?? "historical-report"}-${annual.year}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
   const annual = sheet?.report.years.find(
     (value) => String(value.year) === year,
   );
@@ -248,9 +269,18 @@ export function HistoricalReports({ groupId }: { groupId: string }) {
                   historical figures
                 </p>
               </div>
-              <Button variant="outline" onClick={print}>
-                Print / Save PDF
-              </Button>
+              <div className="flex flex-wrap gap-2 print:hidden">
+                <Button
+                  variant="outline"
+                  onClick={downloadCsv}
+                  disabled={!visible.length}
+                >
+                  Download CSV
+                </Button>
+                <Button variant="outline" onClick={print}>
+                  Print / Save PDF
+                </Button>
+              </div>
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 print:hidden">
               <label>
