@@ -94,6 +94,9 @@ export function registerManagementRoutes(
           .limit(50);
         return json({
           version: group!.managementVersion,
+          currency: group!.currency,
+          openingBalance: group!.openingBalance,
+          openingBalanceDate: group!.openingBalanceDate,
           currentSubject: request.subject,
           members: groupMembers,
           grants,

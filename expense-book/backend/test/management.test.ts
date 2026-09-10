@@ -81,6 +81,26 @@ const call = (
     ...(payload === undefined ? {} : { payload: payload as object }),
   });
 const settings = async () => (await call("alice", group("/settings"))).json();
+it("returns saved opening references without changing member balances", async () => {
+  expect(await settings()).toMatchObject({
+    currency: "USD",
+    openingBalance: "0",
+    openingBalanceDate: null,
+  });
+  const before = (await call("alice", group())).json();
+  const saved = await call("alice", group("/opening-balance"), {
+    amount: "-50",
+    date: "2026-01-01",
+  });
+  expect(saved.statusCode).toBe(200);
+  expect(await settings()).toMatchObject({
+    openingBalance: "-50",
+    openingBalanceDate: "2026-01-01",
+  });
+  const after = (await call("alice", group())).json();
+  expect(after.members).toEqual(before.members);
+  expect(after.totals).toEqual(before.totals);
+});
 describe("import confirmation", () => {
   const row = () => ({
     date: "2026-01-02",

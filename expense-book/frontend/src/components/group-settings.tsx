@@ -1,9 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { api, minorUnits, money } from "@/lib/api";
 
 type Settings = {
+  currency: string;
   version: number;
   currentSubject: string;
   emailEnabled: boolean;
@@ -37,6 +38,12 @@ type SplitTemplate = {
 };
 const roles = ["admin", "editor", "viewer"];
 const panel = "rounded-2xl border border-stone-200 bg-white p-6";
+
+function referenceAmount(minor: string) {
+  const value = BigInt(minor);
+  const absolute = value < 0n ? -value : value;
+  return `${value < 0n ? "-" : ""}${absolute / 100n}.${(absolute % 100n).toString().padStart(2, "0")}`;
+}
 
 export function GroupSettings({ groupId }: { groupId: string }) {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -167,12 +174,20 @@ export function GroupSettings({ groupId }: { groupId: string }) {
   }
   async function saveOpeningBalance(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
+    setPending(true);
+    setError("");
+    setNotice("");
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     try {
+      const value = String(form.get("amount")).trim();
+      const amount =
+        (value.startsWith("-") ? -1n : 1n) *
+        BigInt(minorUnits(value.replace(/^-/, "")));
       await api(
         `/groups/${groupId}/opening-balance`,
-        { amount: form.get("amount"), date: form.get("date") },
+        { amount: amount.toString(), date: form.get("date") },
         crypto.randomUUID(),
       );
       setNotice("Opening balance saved.");
@@ -181,6 +196,8 @@ export function GroupSettings({ groupId }: { groupId: string }) {
       setError(
         e instanceof Error ? e.message : "Unable to save opening balance.",
       );
+    } finally {
+      setPending(false);
     }
   }
   async function change(command: Command) {
@@ -410,22 +427,29 @@ export function GroupSettings({ groupId }: { groupId: string }) {
               Historical opening balance
             </h2>
             <p className="my-3 text-sm leading-6 text-stone-500">
-              Optional starting context for this group. Enter minor units (for
-              example, 12500 = $125.00). It does not import old rows or change
-              the immutable ledger.
+              Optional historical reference amount. New groups start at zero.
+              This amount does not change member balances, reports, or
+              settlement suggestions. Enter a verified amount in{" "}
+              {settings.currency}, such as 125.50.
+            </p>
+            <p className="mb-4 text-sm">
+              {settings.openingBalanceDate
+                ? `Saved reference: ${money(settings.openingBalance, settings.currency)} as of ${settings.openingBalanceDate}`
+                : "No historical reference has been saved."}
             </p>
             <form
+              key={`${settings.openingBalance}-${settings.openingBalanceDate}`}
               className="grid gap-4 sm:grid-cols-3"
               onSubmit={saveOpeningBalance}
             >
               <label>
-                Amount (minor units)
+                Reference amount ({settings.currency})
                 <input
                   name="amount"
-                  inputMode="numeric"
-                  defaultValue={settings.openingBalance}
+                  inputMode="decimal"
+                  defaultValue={referenceAmount(settings.openingBalance)}
                   required
-                  pattern="-?\d{1,15}"
+                  pattern="-?\d{1,13}(\.\d{1,2})?"
                 />
               </label>
               <label>
