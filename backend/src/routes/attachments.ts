@@ -146,12 +146,10 @@ export function registerAttachmentRoutes(
           },
           "Attachment storage deletion failed",
         );
-        return reply
-          .code(503)
-          .send({
-            error:
-              "The file could not be deleted from storage. The attachment has been kept; please try again.",
-          });
+        return reply.code(503).send({
+          error:
+            "The file could not be deleted from storage. The attachment has been kept; please try again.",
+        });
       }
       await db
         .delete(attachments)
