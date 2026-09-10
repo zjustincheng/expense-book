@@ -45,10 +45,14 @@ function parseCsvLine(line: string) {
 }
 export function parseImportCsv(csv: string) {
   const lines = csv.replace(/^\uFEFF/, "").split(/\r?\n/);
-  const dataLines = lines.slice(1).filter((line) => line.trim());
+  const headerIndex = lines.findIndex((line) => line.trim());
+  if (headerIndex < 0)
+    throw new Error("CSV must include a header and at least one row.");
+  const header = lines[headerIndex]!;
+  const dataLines = lines.slice(headerIndex + 1).filter((line) => line.trim());
   if (dataLines.length < 1)
     throw new Error("CSV must include a header and at least one row.");
-  const headers = parseCsvLine(lines[0]!).map((header) =>
+  const headers = parseCsvLine(header).map((header) =>
     header.toLowerCase().replace(/[^a-z0-9]/g, ""),
   );
   const required = ["date", "description", "kind", "amount"];
@@ -57,7 +61,7 @@ export function parseImportCsv(csv: string) {
     throw new Error(`CSV is missing required columns: ${missing.join(", ")}.`);
   const rows: ImportRow[] = [];
   const errors: { row: number; message: string }[] = [];
-  for (let index = 1; index < lines.length; index++) {
+  for (let index = headerIndex + 1; index < lines.length; index++) {
     if (!lines[index]?.trim()) continue;
     try {
       const values = parseCsvLine(lines[index]!);

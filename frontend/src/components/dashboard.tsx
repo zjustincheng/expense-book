@@ -276,7 +276,7 @@ export function Dashboard({
     link.href = url;
     link.download = "member-balances.csv";
     link.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
   function exportSelected() {
     if (!group || !selectedEntries.length) return;
@@ -302,7 +302,7 @@ export function Dashboard({
     link.href = url;
     link.download = "selected-activity.csv";
     link.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
@@ -725,6 +725,15 @@ export function Dashboard({
                   value: group.totals.unsettled,
                   icon: Users,
                 },
+                ...(group.openingBalanceDate
+                  ? [
+                      {
+                        label: "Opening balance",
+                        value: group.openingBalance ?? "0",
+                        icon: Wallet,
+                      },
+                    ]
+                  : []),
               ].map(({ label, value, icon: Icon }, i) => (
                 <section
                   key={label}

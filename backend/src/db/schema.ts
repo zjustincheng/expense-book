@@ -176,6 +176,7 @@ export const recurringTransactions = pgTable(
     input: jsonb().$type<EntryInput>().notNull(),
     frequency: text().notNull(),
     nextRun: date().notNull(),
+    anchorDay: integer(),
     active: integer().notNull().default(1),
     createdBy: text().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

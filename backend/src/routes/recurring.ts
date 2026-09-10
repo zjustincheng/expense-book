@@ -40,6 +40,29 @@ export function advanceDate(date: string, frequency: string) {
   }
   return value.toISOString().slice(0, 10);
 }
+export function advanceAnchoredDate(
+  date: string,
+  frequency: string,
+  anchorDay?: number | null,
+) {
+  if (frequency === "weekly") return advanceDate(date, frequency);
+  const value = new Date(`${date}T00:00:00Z`);
+  const day = anchorDay ?? value.getUTCDate();
+  const months =
+    frequency === "monthly" ? 1 : frequency === "quarterly" ? 3 : 12;
+  const target = new Date(
+    Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + months, 1),
+  );
+  target.setUTCDate(
+    Math.min(
+      day,
+      new Date(
+        Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+      ).getUTCDate(),
+    ),
+  );
+  return target.toISOString().slice(0, 10);
+}
 export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
   app.get("/groups/:groupId/recurring", async (request) => {
     const { groupId } = params.parse(request.params);
@@ -59,6 +82,10 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
       .values({
         groupId,
         ...input,
+        anchorDay:
+          input.frequency === "weekly"
+            ? null
+            : Number(input.nextRun.slice(8, 10)),
         active: 1,
         createdBy: request.subject,
       })
@@ -73,7 +100,18 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
     const input = recurringInput.partial().parse(request.body);
     const [row] = await db
       .update(recurringTransactions)
-      .set({ ...input, updatedAt: new Date() })
+      .set({
+        ...input,
+        ...(input.nextRun
+          ? {
+              anchorDay:
+                input.frequency === "weekly"
+                  ? null
+                  : Number(input.nextRun.slice(8, 10)),
+            }
+          : {}),
+        updatedAt: new Date(),
+      })
       .where(
         and(
           eq(recurringTransactions.groupId, groupId),
@@ -157,7 +195,11 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         const [updated] = await tx
           .update(recurringTransactions)
           .set({
-            nextRun: advanceDate(row.nextRun, row.frequency),
+            nextRun: advanceAnchoredDate(
+              row.nextRun,
+              row.frequency,
+              row.anchorDay,
+            ),
             updatedAt: new Date(),
           })
           .where(
@@ -212,7 +254,11 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
           await tx
             .update(recurringTransactions)
             .set({
-              nextRun: advanceDate(row.nextRun, row.frequency),
+              nextRun: advanceAnchoredDate(
+                row.nextRun,
+                row.frequency,
+                row.anchorDay,
+              ),
               updatedAt: new Date(),
             })
             .where(
