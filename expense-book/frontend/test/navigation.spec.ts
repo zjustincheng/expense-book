@@ -45,7 +45,7 @@ test("group tools load, empty reports export, and CSV imports create review draf
     name: "expenses.csv",
     mimeType: "text/csv",
     buffer: Buffer.from(
-      "date,description,kind,amount\n2026-09-08,Lunch,expense,12.50\n",
+      "date,description,kind,amount\n2026-09-08,Lunch,expense,12.50\n2026-09-08,Repayment,transfer,10\n",
     ),
   });
   await page.getByRole("button", { name: "Preview CSV" }).click();
@@ -54,7 +54,18 @@ test("group tools load, empty reports export, and CSV imports create review draf
   ).toBeVisible();
   await page.getByRole("button", { name: "Create review drafts" }).click();
   await expect(
+    page.getByRole("alert").filter({ hasText: "Choose different From and To" }),
+  ).toBeVisible();
+  await page
+    .getByRole("checkbox", { name: "Include row 2", exact: true })
+    .uncheck();
+  await page.getByRole("button", { name: "Create review drafts" }).click();
+  await expect(
     page.getByText("1 draft records created. Review them before posting."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Preview CSV" }).click();
+  await expect(
+    page.getByRole("button", { name: "Create review drafts (2)", exact: true }),
   ).toBeVisible();
   await page.goto("/account");
   await expect(

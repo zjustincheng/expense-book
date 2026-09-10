@@ -10,7 +10,7 @@ import {
   it,
 } from "vitest";
 import { createApp } from "../src/app.js";
-import { invitations, managementEvents } from "../src/db/schema.js";
+import { drafts, invitations, managementEvents } from "../src/db/schema.js";
 import { testDatabase } from "./test-database.js";
 
 let database: Awaited<ReturnType<typeof testDatabase>>;
@@ -81,6 +81,54 @@ const call = (
     ...(payload === undefined ? {} : { payload: payload as object }),
   });
 const settings = async () => (await call("alice", group("/settings"))).json();
+describe("import confirmation", () => {
+  const row = () => ({
+    date: "2026-01-02",
+    description: "Imported hotel",
+    kind: "expense",
+    amount: "125.50",
+    cashMemberId: memberId,
+    splitMemberIds: [memberId],
+  });
+  it("replays a successful import without creating another batch or draft", async () => {
+    const key = randomUUID();
+    const body = { rows: [row()] };
+    const first = await call("alice", group("/import/confirm"), body, key);
+    expect(first.statusCode).toBe(201);
+    const retry = await call("alice", group("/import/confirm"), body, key);
+    expect(retry.json()).toEqual(first.json());
+    expect((await call("alice", group("/import/history"))).json()).toHaveLength(
+      1,
+    );
+    const saved = await database.db
+      .select()
+      .from(drafts)
+      .where(eq(drafts.groupId, groupId));
+    expect(saved).toHaveLength(1);
+    const conflict = await call(
+      "alice",
+      group("/import/confirm"),
+      { rows: [{ ...row(), amount: "10" }] },
+      key,
+    );
+    expect(conflict.statusCode).toBe(409);
+  });
+  it("rolls back all drafts if a later row has invalid participants", async () => {
+    const response = await call("alice", group("/import/confirm"), {
+      rows: [row(), { ...row(), cashMemberId: randomUUID() }],
+    });
+    expect(response.statusCode).toBe(400);
+    expect(
+      await database.db
+        .select()
+        .from(drafts)
+        .where(eq(drafts.groupId, groupId)),
+    ).toHaveLength(0);
+    expect((await call("alice", group("/import/history"))).json()).toHaveLength(
+      0,
+    );
+  });
+});
 async function change(command: Record<string, unknown>) {
   return call("alice", group("/settings"), {
     version: (await settings()).version,

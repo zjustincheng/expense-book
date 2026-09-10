@@ -10,7 +10,7 @@ import {
 import { entryInput, postEntry } from "../domain/ledger.js";
 import { fail, validateDomain } from "../lib/errors.js";
 import { requestHash } from "../lib/json.js";
-import { lockGroup } from "./access.js";
+import { lockGroup, type Transaction } from "./access.js";
 import { eligibleMemberIds } from "./participants.js";
 
 const version = z.number().int().positive().max(2_147_483_646);
@@ -29,7 +29,7 @@ export const draftCommand = z.discriminatedUnion("action", [
   }),
 ]);
 export async function changeDraft(
-  db: Database,
+  db: Database | Transaction,
   groupId: string,
   actor: string,
   command: z.infer<typeof draftCommand>,

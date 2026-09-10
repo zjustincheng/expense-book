@@ -177,6 +177,7 @@ export const importBatches = pgTable(
       .references(() => groups.id),
     createdBy: text().notNull(),
     rowCount: integer().notNull(),
+    requestHash: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("import_batches_group_created").on(t.groupId, t.createdAt)],
