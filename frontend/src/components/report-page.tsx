@@ -52,10 +52,12 @@ export function ReportPage({ groupId }: { groupId: string }) {
       preset === "lastMonth"
         ? new Date(now.getFullYear(), now.getMonth(), 0)
         : now;
+    const localDate = (value: Date) =>
+      `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
     const next = {
       ...filters,
-      from: start.toISOString().slice(0, 10),
-      to: end.toISOString().slice(0, 10),
+      from: localDate(start),
+      to: localDate(end),
     };
     setFilters(next);
     setPage(1);
@@ -153,7 +155,7 @@ export function ReportPage({ groupId }: { groupId: string }) {
     link.href = url;
     link.download = `${group.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-report.csv`;
     link.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
   function exportCsv() {
     if (report) downloadCsv(report.records);

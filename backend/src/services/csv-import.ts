@@ -44,11 +44,9 @@ function parseCsvLine(line: string) {
   return values;
 }
 export function parseImportCsv(csv: string) {
-  const lines = csv
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .filter((line) => line.trim());
-  if (lines.length < 2)
+  const lines = csv.replace(/^\uFEFF/, "").split(/\r?\n/);
+  const dataLines = lines.slice(1).filter((line) => line.trim());
+  if (dataLines.length < 1)
     throw new Error("CSV must include a header and at least one row.");
   const headers = parseCsvLine(lines[0]!).map((header) =>
     header.toLowerCase().replace(/[^a-z0-9]/g, ""),
@@ -60,6 +58,7 @@ export function parseImportCsv(csv: string) {
   const rows: ImportRow[] = [];
   const errors: { row: number; message: string }[] = [];
   for (let index = 1; index < lines.length; index++) {
+    if (!lines[index]?.trim()) continue;
     try {
       const values = parseCsvLine(lines[index]!);
       const raw = Object.fromEntries(
@@ -79,5 +78,5 @@ export function parseImportCsv(csv: string) {
       });
     }
   }
-  return { rows, errors, total: lines.length - 1 };
+  return { rows, errors, total: dataLines.length };
 }

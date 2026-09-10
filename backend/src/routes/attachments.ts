@@ -85,7 +85,7 @@ export function registerAttachmentRoutes(
         });
       return reply.code(201).send({
         ...created,
-        uploadUrl: await uploadUrl(storage, key, input.contentType),
+        uploadUrl: await uploadUrl(storage, key, input.contentType, input.size),
         expiresIn: 300,
       });
     },

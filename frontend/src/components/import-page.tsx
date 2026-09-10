@@ -98,7 +98,7 @@ export function ImportPage({ groupId }: { groupId: string }) {
     link.href = url;
     link.download = "expense-book-import-template.csv";
     link.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
   function selectReadyRows() {
     if (!preview) return;
