@@ -35,6 +35,7 @@ resource "aws_ecs_task_definition" "backend" {
     portMappings = [{ containerPort = 4000, protocol = "tcp" }]
     environment = [
       { name = "NODE_ENV", value = "production" },
+      { name = "HOST", value = "0.0.0.0" },
       { name = "AUTH_MODE", value = "jwt" },
       { name = "AWS_REGION", value = var.aws_region },
       { name = "S3_BUCKET", value = aws_s3_bucket.attachments.id },
@@ -76,9 +77,15 @@ resource "aws_ecs_task_definition" "frontend" {
   memory                   = 1024
   execution_role_arn       = aws_iam_role.ecs_execution.arn
   container_definitions = jsonencode([{
-    name             = "frontend", image = var.frontend_image, essential = true,
-    portMappings     = [{ containerPort = 3000, protocol = "tcp" }]
-    environment      = [{ name = "NODE_ENV", value = "production" }, { name = "API_INTERNAL_URL", value = "http://backend.${aws_service_discovery_private_dns_namespace.application.name}:4000" }, { name = "APP_URL", value = var.app_url }]
+    name         = "frontend", image = var.frontend_image, essential = true,
+    portMappings = [{ containerPort = 3000, protocol = "tcp" }]
+    environment = [
+      { name = "NODE_ENV", value = "production" },
+      { name = "API_INTERNAL_URL", value = "http://backend.${aws_service_discovery_private_dns_namespace.application.name}:4000" },
+      { name = "APP_URL", value = var.app_url },
+      { name = "COGNITO_CLIENT_ID", value = aws_cognito_user_pool_client.web.id },
+      { name = "COGNITO_DOMAIN", value = "https://${aws_cognito_user_pool_domain.users.domain}.auth.${var.aws_region}.amazoncognito.com" }
+    ]
     logConfiguration = { logDriver = "awslogs", options = { awslogs-group = aws_cloudwatch_log_group.ecs.name, awslogs-region = var.aws_region, awslogs-stream-prefix = "frontend" } }
   }])
 }
