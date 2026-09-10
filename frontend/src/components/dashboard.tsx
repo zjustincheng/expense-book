@@ -431,6 +431,10 @@ export function Dashboard({
                   },
                   { label: "Import CSV", href: `/groups/${group.id}/import` },
                   {
+                    label: "Historical reports",
+                    href: `/groups/${group.id}/historical`,
+                  },
+                  {
                     label: "Members & access",
                     href: `/groups/${group.id}/settings`,
                     enabled: group.role === "admin",
@@ -505,6 +509,11 @@ export function Dashboard({
               </Button>
               <Button asChild variant="outline">
                 <a href={`/groups/${group.id}/import`}>Import CSV</a>
+              </Button>
+              <Button asChild variant="outline">
+                <a href={`/groups/${group.id}/historical`}>
+                  Historical reports
+                </a>
               </Button>
               {group.role !== "viewer" && (
                 <Button

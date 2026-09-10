@@ -13,6 +13,19 @@ function fraction(n: bigint, d = 1n): Fraction {
   return { n: n / (a || 1n), d: d / (a || 1n) };
 }
 export function evaluateAmount(expression: string, precision = 2): bigint {
+  return evaluate(expression, precision, false);
+}
+
+/** Historical reports may contain zero or negative figures; never used to post money. */
+export function evaluateHistoricalAmount(expression: string): bigint {
+  return evaluate(expression, 2, true);
+}
+
+function evaluate(
+  expression: string,
+  precision: number,
+  signed: boolean,
+): bigint {
   if (!Number.isInteger(precision) || precision < 0 || precision > 3)
     throw new Error("Unsupported currency precision.");
   if (!expression.trim() || expression.length > 256)
@@ -63,13 +76,13 @@ export function evaluateAmount(expression: string, precision = 2): bigint {
   const value = sum(0);
   if (position !== tokens.length)
     throw new Error("Unexpected expression token.");
-  if (value.n <= 0n) throw new Error("Amount must be positive.");
-  const scaled = value.n * 10n ** BigInt(precision);
+  if (!signed && value.n <= 0n) throw new Error("Amount must be positive.");
+  const scaled = (value.n < 0n ? -value.n : value.n) * 10n ** BigInt(precision);
   const amount =
     scaled / value.d + ((scaled % value.d) * 2n >= value.d ? 1n : 0n);
-  if (amount <= 0n || amount > MAX_AMOUNT)
+  if ((!signed && amount <= 0n) || amount > MAX_AMOUNT)
     throw new Error("Amount is outside the supported range.");
-  return amount;
+  return value.n < 0n ? -amount : amount;
 }
 
 export function allocate(

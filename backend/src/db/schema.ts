@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type { EntryInput } from "../domain/ledger.js";
 import type { RefundInput } from "../domain/lifecycle.js";
+import type { HistoricalReport } from "../services/historical-report.js";
 
 export const groups = pgTable(
   "groups",
@@ -45,6 +46,28 @@ export const groups = pgTable(
     ),
   ],
 );
+export const historicalReports = pgTable(
+  "historical_reports",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => groups.id),
+    title: text().notNull(),
+    fileName: text().notNull(),
+    source: text().notNull(),
+    sourceHash: text().notNull(),
+    currency: text().notNull(),
+    report: jsonb().$type<HistoricalReport>().notNull(),
+    createdBy: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("historical_report_source").on(t.groupId, t.sourceHash),
+    index("historical_reports_group").on(t.groupId, t.createdAt),
+  ],
+);
+
 export const access = pgTable(
   "group_access",
   {
