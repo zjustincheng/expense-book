@@ -109,7 +109,9 @@ test("receipts upload, preview, delete, and clear the file input", async ({
     mimeType: "image/png",
     buffer: png,
   });
-  await expect(row.getByText("receipt.png", { exact: false })).toBeVisible();
+  await expect(
+    row.getByText("receipt.png (1 KB)", { exact: true }),
+  ).toBeVisible();
   await expect(input).toHaveValue("");
   await row.getByRole("button", { name: "Preview", exact: true }).click();
   await expect(
@@ -122,8 +124,17 @@ test("receipts upload, preview, delete, and clear the file input", async ({
     expect(route.request().headers()["content-type"]).toBeUndefined();
     return route.fulfill({ json: { deleted: true } });
   });
-  page.once("dialog", (dialog) => dialog.accept());
   await row.getByRole("button", { name: "Delete", exact: true }).click();
+  const confirmation = page.getByRole("dialog", { name: "Delete attachment?" });
+  await expect(
+    confirmation.getByRole("button", { name: "Cancel", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(confirmation).not.toBeVisible();
+  await row.getByRole("button", { name: "Delete", exact: true }).click();
+  await confirmation
+    .getByRole("button", { name: "Delete attachment", exact: true })
+    .click();
   await expect(row.getByText("receipt.png", { exact: false })).toHaveCount(0);
   await expect(row.getByText("No receipts attached yet.")).toBeVisible();
 });
