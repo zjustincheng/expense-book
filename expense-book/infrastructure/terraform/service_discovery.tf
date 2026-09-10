@@ -16,9 +16,6 @@ resource "aws_service_discovery_service" "backend" {
       type = "A"
     }
   }
-
-  health_check_custom_config {
-  }
 }
 
 resource "aws_vpc_security_group_ingress_rule" "backend_from_ecs" {
