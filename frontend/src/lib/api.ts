@@ -3,6 +3,8 @@ export type Group = {
   name: string;
   currency: string;
   role: string;
+  openingBalance?: string;
+  openingBalanceDate?: string | null;
 };
 export type Member = {
   id: string;

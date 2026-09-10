@@ -157,7 +157,7 @@ export function HistoricalReports({ groupId }: { groupId: string }) {
     link.href = url;
     link.download = `${sheet?.title ?? "historical-report"}-${annual.year}.csv`;
     link.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
   const annual = sheet?.report.years.find(
     (value) => String(value.year) === year,
