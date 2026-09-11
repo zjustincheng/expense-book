@@ -429,7 +429,10 @@ export function Dashboard({
                     label: "Recurring transactions",
                     href: `/groups/${group.id}/recurring`,
                   },
-                  { label: "Import CSV", href: `/groups/${group.id}/import` },
+                  {
+                    label: "Import transactions",
+                    href: `/groups/${group.id}/import`,
+                  },
                   {
                     label: "Historical reports",
                     href: `/groups/${group.id}/historical`,
@@ -508,7 +511,7 @@ export function Dashboard({
                 <a href={`/groups/${group.id}/recurring`}>Recurring</a>
               </Button>
               <Button asChild variant="outline">
-                <a href={`/groups/${group.id}/import`}>Import CSV</a>
+                <a href={`/groups/${group.id}/import`}>Import transactions</a>
               </Button>
               <Button asChild variant="outline">
                 <a href={`/groups/${group.id}/historical`}>
