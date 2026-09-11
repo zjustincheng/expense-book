@@ -15,7 +15,7 @@ async function proxy(
     );
   const { path } = await context.params;
   if (
-    !["groups", "invitations", "session"].includes(path[0] ?? "") ||
+    !["groups", "invitations", "session", "health"].includes(path[0] ?? "") ||
     path.some((part) => !/^[a-zA-Z0-9-]+$/.test(part))
   )
     return new NextResponse(null, { status: 404 });
@@ -43,8 +43,10 @@ async function proxy(
   )
     return NextResponse.json({ error: "Request too large." }, { status: 413 });
   try {
+    const backendPath =
+      path[0] === "health" ? "/health" : `/api/${path.join("/")}`;
     const response = await fetch(
-      `${process.env.API_INTERNAL_URL ?? "http://127.0.0.1:4000"}/api/${path.join("/")}${request.nextUrl.search}`,
+      `${process.env.API_INTERNAL_URL ?? "http://127.0.0.1:4000"}${backendPath}${request.nextUrl.search}`,
       {
         method: request.method,
         headers,
