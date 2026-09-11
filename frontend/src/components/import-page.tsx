@@ -179,18 +179,20 @@ export function ImportPage({ groupId }: { groupId: string }) {
         ← Back to group
       </a>
       <header>
-        <h1 className="text-3xl font-semibold">Import historical records</h1>
+        <h1 className="text-3xl font-semibold">Import live transactions</h1>
         <p className="mt-3 text-sm">
           <a
             className="text-emerald-800 underline"
             href={`/groups/${groupId}/historical`}
           >
-            Have TXT or TOML balance sheets? Open Historical reports.
+            Importing an old balance sheet? Open the Historical archive instead.
           </a>
         </p>
         <p className="mt-2 max-w-2xl text-sm text-stone-500">
-          Upload a CSV to validate it before anything changes. Required columns:
-          date, description, kind, amount. This preview never posts records.
+          Upload a transaction CSV to validate it before anything changes. These
+          rows create live review drafts and can affect balances after posting.
+          Required columns: date, description, kind, amount. This preview never
+          posts records.
         </p>
       </header>
       <form

@@ -181,9 +181,9 @@ export function HistoricalReports({ groupId }: { groupId: string }) {
         <p className="text-xs font-semibold uppercase tracking-widest text-emerald-800">
           Historical archive
         </p>
-        <h1 className="mt-2 text-3xl font-semibold">Historical reports</h1>
+        <h1 className="mt-2 text-3xl font-semibold">Historical archive</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-600">
-          Turn annual rental records into a readable sheet. Imported reports
+          Turn annual rental records into a readable sheet. Imported archives
           never change live transactions, member balances, or settlement
           suggestions. Figures remain historical and unverified.
         </p>
