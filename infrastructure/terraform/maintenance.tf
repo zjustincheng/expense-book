@@ -89,3 +89,27 @@ resource "aws_scheduler_schedule" "attachment_cleanup" {
     }
   }
 }
+
+resource "aws_cloudwatch_log_metric_filter" "attachment_cleanup_failures" {
+  name           = "${local.name}-attachment-cleanup-failures"
+  log_group_name = aws_cloudwatch_log_group.attachment_cleanup.name
+  pattern        = "{ $.failed = 1 }"
+  metric_transformation {
+    name      = "AttachmentCleanupFailures"
+    namespace = "ExpenseBook/Maintenance"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "attachment_cleanup_failures" {
+  alarm_name          = "${local.name}-attachment-cleanup-failures"
+  alarm_description   = "Pending attachment cleanup reported an S3 or database failure."
+  namespace           = "ExpenseBook/Maintenance"
+  metric_name         = "AttachmentCleanupFailures"
+  statistic           = "Sum"
+  period              = 86400
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+}
