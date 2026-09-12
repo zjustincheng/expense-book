@@ -1,5 +1,7 @@
 # Infrastructure
 
+See the [AWS infrastructure diagrams](architecture.md) for application traffic, networking, deployment, and operations.
+
 Run local PostgreSQL with `docker compose -f infrastructure/compose.yaml up -d` from the repository root. The local credentials are development-only and the port binds to loopback.
 
 `terraform/` is the AWS foundation: private encrypted RDS, private versioned attachment storage, Cognito, Secrets Manager, ECR repositories, ECS task definitions/services, private Cloud Map service discovery, application log groups, an HTTPS Application Load Balancer, CloudFront, Route 53, optional managed networking, CloudWatch alarms, and a GitHub OIDC deployment role. It can consume an existing VPC or create one with `create_network = true`. No AWS resources have been provisioned.
