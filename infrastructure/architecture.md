@@ -112,16 +112,16 @@ The deployment workflow runs on pushes to `main` or manual dispatch, passes CI, 
 
 ## Source files
 
-| Area | Source |
-| --- | --- |
-| VPC, subnets, routing, NAT | [network.tf](terraform/network.tf) |
-| Load balancer and ingress | [alb.tf](terraform/alb.tf) |
-| CloudFront and DNS | [route53_cloudfront.tf](terraform/route53_cloudfront.tf) |
-| Frontend and backend services | [ecs.tf](terraform/ecs.tf) |
-| Private backend discovery | [service_discovery.tf](terraform/service_discovery.tf) |
-| RDS, S3, Cognito, ECR, secrets | [main.tf](terraform/main.tf) |
-| Execution and runtime permissions | [iam.tf](terraform/iam.tf) |
-| Scheduled attachment cleanup | [maintenance.tf](terraform/maintenance.tf) |
-| Alarms and optional email alerts | [monitoring.tf](terraform/monitoring.tf) |
-| GitHub deployment permissions | [deploy.tf](terraform/deploy.tf) |
-| Deployment workflow | [deploy.yml](../.github/workflows/deploy.yml) |
+| Area                              | Source                                                   |
+| --------------------------------- | -------------------------------------------------------- |
+| VPC, subnets, routing, NAT        | [network.tf](terraform/network.tf)                       |
+| Load balancer and ingress         | [alb.tf](terraform/alb.tf)                               |
+| CloudFront and DNS                | [route53_cloudfront.tf](terraform/route53_cloudfront.tf) |
+| Frontend and backend services     | [ecs.tf](terraform/ecs.tf)                               |
+| Private backend discovery         | [service_discovery.tf](terraform/service_discovery.tf)   |
+| RDS, S3, Cognito, ECR, secrets    | [main.tf](terraform/main.tf)                             |
+| Execution and runtime permissions | [iam.tf](terraform/iam.tf)                               |
+| Scheduled attachment cleanup      | [maintenance.tf](terraform/maintenance.tf)               |
+| Alarms and optional email alerts  | [monitoring.tf](terraform/monitoring.tf)                 |
+| GitHub deployment permissions     | [deploy.tf](terraform/deploy.tf)                         |
+| Deployment workflow               | [deploy.yml](../.github/workflows/deploy.yml)            |
