@@ -1,37 +1,58 @@
-# GitHub deployment
+# Self-Hosted Deployment (`expbook.culater.cc`)
 
-Expense-book must be the Git repository root so GitHub can discover `.github/workflows`.
+Expense Book is configured for self-hosting on a local Linux machine using Docker Compose, a local SQLite database, local filesystem attachment storage, and a Cloudflare Tunnel exposing `https://expbook.culater.cc`.
 
-Pull requests run quality checks. Pushes to `main` and manual runs call the same checks before deployment: formatting, lint, types, backend tests, browser tests, dependency audit, Terraform validation, and container builds. Failed checks block deployment. Manual deployment is restricted to `main`.
+## Architecture
 
-## One-time configuration
+1. **`backend` container** (`backend/Dockerfile`):
+   - Runs Fastify on port `4000` inside the internal Docker network.
+   - Uses Node 24's built-in SQLite engine (`node:sqlite`) with WAL mode enabled, storing the database at `/data/expense-book.sqlite` (mounted from `./data` on the Linux host).
+   - Stores receipt and file attachments under `/data/attachments` (mounted from `./data/attachments` on the Linux host).
+   - Runs SQLite migrations automatically on container startup (`node backend/dist/db/migrate.js`).
+   - Uses built-in local email/password accounts (`AUTH_MODE=local`) stored in SQLite (`users` and `user_sessions` tables).
 
-Create a GitHub environment matching Terraform's `environment` value (for example, `development`). Restrict its deployment branches to `main` in GitHub environment settings. AWS trusts the environment name, so this branch restriction is important.
+2. **`frontend` container** (`frontend/Dockerfile`):
+   - Runs the Next.js standalone server on port `3000`.
+   - Proxies `/api/*` and `/auth/*` requests to `http://backend:4000`.
+   - Binds to `127.0.0.1:3000` on the host for local health checks and troubleshooting.
 
-Set these **repository variables** under Settings → Secrets and variables → Actions:
+3. **`cloudflared` container** (`cloudflare/cloudflared:latest`):
+   - Connects outbound to Cloudflare's edge and routes `https://expbook.culater.cc` to `http://frontend:3000` without requiring open inbound firewall ports on the host machine.
 
-| Variable      | Example        |
-| ------------- | -------------- |
-| `ENVIRONMENT` | `development`  |
-| `AWS_REGION`  | `us-east-1`    |
-| `NAME_PREFIX` | `expense-book` |
+## Setup Steps
 
-Set `AWS_DEPLOY_ROLE_ARN` as a secret in that GitHub environment, using the ARN of Terraform's `aws_iam_role.github_deploy` role. No AWS access keys are needed.
+1. **Configure `.env`**:
 
-The deployment job's **Show OIDC trust claims** step reports the exact subject without exposing its authentication token. Set Terraform's `github_oidc_subject` to that subject in your local `terraform.tfvars`, then review and apply the plan. Newer repositories include immutable owner and repository IDs. For this repository's development environment, the observed subject is `repo:zjustincheng@125840269/expense-book@1360805191:environment:development`. The audience remains `sts.amazonaws.com`. A policy using the older name-only subject will not match this identity.
+   ```sh
+   cp .env.example .env
+   ```
 
-The ECS cluster, services, repositories, database, and runtime secrets must already exist. Infrastructure creation remains a Terraform operation.
+   Edit `.env` and set:
 
-## Release behavior
+   ```dotenv
+   APP_URL=https://expbook.culater.cc
+   AUTH_MODE=local
+   DATA_DIR=./data
+   CLOUDFLARE_TUNNEL_TOKEN=<your-cloudflare-tunnel-token>
+   ```
 
-Receipt uploads go directly from the browser to the private S3 bucket using a temporary signed URL. Apply Terraform's `aws_s3_bucket_cors_configuration.attachments` setting to allow requests from `app_url`; pushing application code alone does not apply this configuration. Verify a real upload and download on the live website after applying. Browser regression tests substitute storage responses and do not verify AWS connectivity.
+2. **Configure Cloudflare Tunnel Route**:
+   - In the Cloudflare Zero Trust dashboard (**Networks → Tunnels**):
+     - Select your tunnel and go to the **Public Hostname** tab.
+     - Add a public hostname:
+       - **Subdomain**: `expbook`
+       - **Domain**: `culater.cc`
+       - **Service Type**: `HTTP`
+       - **URL**: `frontend:3000`
+   - Alternatively, if using a locally-managed tunnel credentials file, see `infrastructure/cloudflared/config.yml`.
 
-Receipt deletion also requires `s3:DeleteObject` in `aws_iam_role_policy.backend_runtime`, scoped to the attachment bucket's `groups/*` prefix. Apply that policy update if uploads and downloads work but deletion fails. The API keeps the database link when storage deletion fails so the operation can be retried. S3 versioning retains older object versions according to the bucket's retention policy.
+3. **Start the Services**:
 
-The workflow reads the task definitions currently assigned to both ECS services, preserving their environment variables, roles, secrets, and network-related container configuration. `FRONTEND_TASK_DEFINITION` and `BACKEND_TASK_DEFINITION` variables are no longer needed.
+   ```sh
+   docker compose up -d --build
+   ```
 
-Both images are built for `linux/amd64` and tagged with the commit SHA. The backend is deployed first; its startup runs database migrations. The frontend is deployed after the backend service stabilizes. Database changes must remain compatible with the previous frontend during rollout. A newer push does not cancel a release in progress.
-
-Check the **Deploy to ECS** run in GitHub Actions for the result. A successful Git push alone does not confirm that the live website updated. If configuration validation fails, set the named variable or secret; if AWS authentication fails, check the environment name and apply the OIDC trust update.
-
-This workflow uses GitHub's [reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) and AWS's [ECS task-definition render action](https://github.com/aws-actions/amazon-ecs-render-task-definition).
+4. **Backups**:
+   All persistent state resides in `./data`:
+   - `./data/expense-book.sqlite` (plus `-wal` / `-shm` files while running)
+   - `./data/attachments/`

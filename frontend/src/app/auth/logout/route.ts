@@ -1,13 +1,22 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { cognitoConfig } from "@/lib/auth";
+import { cognitoConfig, isValidOrigin } from "@/lib/auth";
 export async function POST(request: NextRequest) {
-  if (
-    request.headers.get("origin") !==
-    new URL(process.env.APP_URL ?? request.url).origin
-  )
-    return new NextResponse(null, { status: 403 });
-  (await cookies()).delete("access_token");
+  if (!isValidOrigin(request)) return new NextResponse(null, { status: 403 });
+  const jar = await cookies();
+  const token = jar.get("access_token")?.value;
+  jar.delete("access_token");
+  if (token) {
+    await fetch(
+      `${process.env.API_INTERNAL_URL ?? "http://127.0.0.1:4000"}/api/auth/logout`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(5_000),
+      },
+    ).catch(() => undefined);
+  }
   if (!process.env.COGNITO_DOMAIN || !process.env.COGNITO_CLIENT_ID)
     return NextResponse.redirect(
       new URL("/", process.env.APP_URL ?? request.url),

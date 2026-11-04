@@ -383,8 +383,7 @@ export async function reviewInvitation(
     const [group] = await tx
       .select()
       .from(groups)
-      .where(eq(groups.id, lookup.groupId))
-      .for("update");
+      .where(eq(groups.id, lookup.groupId));
     const [invitation] = await tx
       .select()
       .from(invitations)

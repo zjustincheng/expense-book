@@ -64,49 +64,46 @@ export function registerManagementRoutes(
   app.get("/groups/:groupId/settings", async (request) => {
     const { groupId } = groupParams.parse(request.params);
     await requireAdmin(db, groupId, request.subject);
-    return db.transaction(
-      async (tx) => {
-        const [group] = await tx
-          .select()
-          .from(groups)
-          .where(eq(groups.id, groupId));
-        const groupMembers = await tx
-          .select()
-          .from(members)
-          .where(eq(members.groupId, groupId))
-          .orderBy(members.name);
-        const grants = await tx
-          .select()
-          .from(access)
-          .where(eq(access.groupId, groupId))
-          .orderBy(access.subject);
-        const invites = await tx
-          .select()
-          .from(invitations)
-          .where(eq(invitations.groupId, groupId))
-          .orderBy(desc(invitations.createdAt))
-          .limit(100);
-        const events = await tx
-          .select()
-          .from(managementEvents)
-          .where(eq(managementEvents.groupId, groupId))
-          .orderBy(desc(managementEvents.createdAt))
-          .limit(50);
-        return json({
-          version: group!.managementVersion,
-          currency: group!.currency,
-          openingBalance: group!.openingBalance,
-          openingBalanceDate: group!.openingBalanceDate,
-          currentSubject: request.subject,
-          members: groupMembers,
-          grants,
-          invitations: invites,
-          events,
-          emailEnabled: Boolean(delivery?.send),
-        });
-      },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
-    );
+    return db.transaction(async (tx) => {
+      const [group] = await tx
+        .select()
+        .from(groups)
+        .where(eq(groups.id, groupId));
+      const groupMembers = await tx
+        .select()
+        .from(members)
+        .where(eq(members.groupId, groupId))
+        .orderBy(members.name);
+      const grants = await tx
+        .select()
+        .from(access)
+        .where(eq(access.groupId, groupId))
+        .orderBy(access.subject);
+      const invites = await tx
+        .select()
+        .from(invitations)
+        .where(eq(invitations.groupId, groupId))
+        .orderBy(desc(invitations.createdAt))
+        .limit(100);
+      const events = await tx
+        .select()
+        .from(managementEvents)
+        .where(eq(managementEvents.groupId, groupId))
+        .orderBy(desc(managementEvents.createdAt))
+        .limit(50);
+      return json({
+        version: group!.managementVersion,
+        currency: group!.currency,
+        openingBalance: group!.openingBalance,
+        openingBalanceDate: group!.openingBalanceDate,
+        currentSubject: request.subject,
+        members: groupMembers,
+        grants,
+        invitations: invites,
+        events,
+        emailEnabled: Boolean(delivery?.send),
+      });
+    });
   });
   app.post("/groups/:groupId/opening-balance", async (request) => {
     const { groupId } = groupParams.parse(request.params);

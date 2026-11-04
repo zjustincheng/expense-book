@@ -1,0 +1,14 @@
+# Cloudflare Tunnel configuration for expbook.culater.cc
+# If using a remotely-managed tunnel token (recommended), set CLOUDFLARE_TUNNEL_TOKEN in .env
+# and configure the public hostname in the Cloudflare Zero Trust dashboard:
+#   Public Hostname: expbook.culater.cc -> Service: http://frontend:3000
+#
+# If using a locally-managed tunnel credentials file, mount this directory to /etc/cloudflared
+# and set the tunnel UUID below:
+tunnel: expense-book
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: expbook.culater.cc
+    service: http://frontend:3000
+  - service: http_status:404

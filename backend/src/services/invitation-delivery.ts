@@ -25,7 +25,11 @@ export function createInvitationDelivery(
     origin.password
   )
     throw new Error("APP_URL must be a website origin.");
-  if (env.AUTH_MODE !== "development" && origin.protocol !== "https:")
+  if (
+    env.AUTH_MODE !== "development" &&
+    env.AUTH_MODE !== "local" &&
+    origin.protocol !== "https:"
+  )
     throw new Error("Production invitation links require HTTPS.");
   if (!env.INVITATION_FROM_EMAIL) return { appUrl: origin.origin };
   const client = new SESv2Client({ region: env.AWS_REGION, maxAttempts: 1 });

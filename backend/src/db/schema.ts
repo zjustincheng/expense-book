@@ -1,39 +1,104 @@
+import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import {
-  bigint,
   check,
-  date,
+  customType,
   foreignKey,
   index,
   integer,
-  jsonb,
-  pgTable,
   primaryKey,
+  sqliteTable,
   text,
-  timestamp,
   unique,
-  uuid,
-} from "drizzle-orm/pg-core";
+} from "drizzle-orm/sqlite-core";
 import type { EntryInput } from "../domain/ledger.js";
 import type { RefundInput } from "../domain/lifecycle.js";
 import type { HistoricalReport } from "../services/historical-report.js";
 
-export const groups = pgTable(
+const sqliteUuidDefault = sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`;
+
+function uuid() {
+  return text();
+}
+function uuidPrimaryKey() {
+  return text()
+    .primaryKey()
+    .default(sqliteUuidDefault)
+    .$defaultFn(() => randomUUID());
+}
+function date() {
+  return text();
+}
+function timestamp() {
+  return integer({ mode: "timestamp_ms" });
+}
+function timestampNow() {
+  return integer({ mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(cast((julianday('now') - 2440587.5) * 86400000 as integer))`)
+    .$defaultFn(() => new Date());
+}
+function jsonb<T>() {
+  return text({ mode: "json" }).$type<T>();
+}
+const bigint = customType<{
+  data: bigint;
+  driverData: number | bigint | string;
+}>({
+  dataType() {
+    return "integer";
+  },
+  fromDriver(value) {
+    return BigInt(value);
+  },
+  toDriver(value) {
+    return value;
+  },
+});
+
+export const users = sqliteTable("users", {
+  id: uuidPrimaryKey(),
+  email: text().notNull().unique(),
+  name: text().notNull(),
+  passwordHash: text().notNull(),
+  createdAt: timestampNow(),
+});
+
+export const userSessions = sqliteTable(
+  "user_sessions",
+  {
+    id: uuidPrimaryKey(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id),
+    tokenHash: text().notNull().unique(),
+    expiresAt: timestamp().notNull(),
+    createdAt: timestampNow(),
+  },
+  (t) => [
+    index("user_sessions_user").on(t.userId),
+    index("user_sessions_expiry").on(t.expiresAt),
+  ],
+);
+
+export const groups = sqliteTable(
   "groups",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     name: text().notNull(),
     currency: text().notNull(),
     defaultSplitMethod: text().notNull().default("equal"),
     managementVersion: integer().notNull().default(0),
-    ledgerVersion: bigint({ mode: "bigint" })
+    ledgerVersion: bigint()
       .notNull()
-      .default(sql`0`),
-    openingBalance: bigint({ mode: "bigint" })
+      .default(sql`0`)
+      .$defaultFn(() => 0n),
+    openingBalance: bigint()
       .notNull()
-      .default(sql`0`),
+      .default(sql`0`)
+      .$defaultFn(() => 0n),
     openingBalanceDate: date(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestampNow(),
   },
   (t) => [
     check(
@@ -46,10 +111,11 @@ export const groups = pgTable(
     ),
   ],
 );
-export const historicalReports = pgTable(
+
+export const historicalReports = sqliteTable(
   "historical_reports",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
@@ -58,9 +124,9 @@ export const historicalReports = pgTable(
     source: text().notNull(),
     sourceHash: text().notNull(),
     currency: text().notNull(),
-    report: jsonb().$type<HistoricalReport>().notNull(),
+    report: jsonb<HistoricalReport>().notNull(),
     createdBy: text().notNull(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestampNow(),
   },
   (t) => [
     unique("historical_report_source").on(t.groupId, t.sourceHash),
@@ -68,7 +134,7 @@ export const historicalReports = pgTable(
   ],
 );
 
-export const access = pgTable(
+export const access = sqliteTable(
   "group_access",
   {
     groupId: uuid()
@@ -83,20 +149,22 @@ export const access = pgTable(
     check("valid_role", sql`${t.role} in ('admin','editor','viewer')`),
   ],
 );
-export const userPreferences = pgTable("user_preferences", {
+
+export const userPreferences = sqliteTable("user_preferences", {
   subject: text().primaryKey(),
-  notifications: jsonb().$type<Record<string, boolean>>().notNull(),
-  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  notifications: jsonb<Record<string, boolean>>().notNull(),
+  updatedAt: timestampNow(),
 });
-export const members = pgTable(
+
+export const members = sqliteTable(
   "members",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
     name: text().notNull(),
-    archivedAt: timestamp({ withTimezone: true }),
+    archivedAt: timestamp(),
     linkedSubject: text(),
   },
   (t) => [
@@ -108,16 +176,17 @@ export const members = pgTable(
     }),
   ],
 );
-export const projects = pgTable(
+
+export const projects = sqliteTable(
   "projects",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
     name: text().notNull(),
-    archivedAt: timestamp({ withTimezone: true }),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    archivedAt: timestamp(),
+    createdAt: timestampNow(),
   },
   (t) => [
     unique("project_group_id").on(t.groupId, t.id),
@@ -125,16 +194,17 @@ export const projects = pgTable(
     index("projects_group").on(t.groupId, t.archivedAt),
   ],
 );
-export const categories = pgTable(
+
+export const categories = sqliteTable(
   "categories",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
     name: text().notNull(),
-    archivedAt: timestamp({ withTimezone: true }),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    archivedAt: timestamp(),
+    createdAt: timestampNow(),
   },
   (t) => [
     unique("category_group_id").on(t.groupId, t.id),
@@ -142,18 +212,19 @@ export const categories = pgTable(
     index("categories_group").on(t.groupId, t.archivedAt),
   ],
 );
-export const splitTemplates = pgTable(
+
+export const splitTemplates = sqliteTable(
   "split_templates",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
     name: text().notNull(),
     method: text().notNull(),
-    shares: jsonb().$type<unknown>().notNull(),
-    archivedAt: timestamp({ withTimezone: true }),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    shares: jsonb<unknown>().notNull(),
+    archivedAt: timestamp(),
+    createdAt: timestampNow(),
   },
   (t) => [
     unique("split_template_group_id").on(t.groupId, t.id),
@@ -165,22 +236,23 @@ export const splitTemplates = pgTable(
     ),
   ],
 );
-export const recurringTransactions = pgTable(
+
+export const recurringTransactions = sqliteTable(
   "recurring_transactions",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
     name: text().notNull(),
-    input: jsonb().$type<EntryInput>().notNull(),
+    input: jsonb<EntryInput>().notNull(),
     frequency: text().notNull(),
     nextRun: date().notNull(),
     anchorDay: integer(),
     active: integer().notNull().default(1),
     createdBy: text().notNull(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestampNow(),
+    updatedAt: timestampNow(),
   },
   (t) => [
     unique("recurring_group_id").on(t.groupId, t.id),
@@ -192,31 +264,33 @@ export const recurringTransactions = pgTable(
     check("recurring_active", sql`${t.active} in (0, 1)`),
   ],
 );
-export const importBatches = pgTable(
+
+export const importBatches = sqliteTable(
   "import_batches",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
     createdBy: text().notNull(),
     rowCount: integer().notNull(),
     requestHash: text(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestampNow(),
   },
   (t) => [index("import_batches_group_created").on(t.groupId, t.createdAt)],
 );
-export const notificationDismissals = pgTable(
+
+export const notificationDismissals = sqliteTable(
   "notification_dismissals",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
     subject: text().notNull(),
     notificationType: text().notNull(),
     notificationId: uuid().notNull(),
-    dismissedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    dismissedAt: timestampNow(),
   },
   (t) => [
     unique("notification_dismissal_key").on(
@@ -227,21 +301,22 @@ export const notificationDismissals = pgTable(
     ),
   ],
 );
+
 // Append-only journal. The input snapshot preserves the split rule and expression.
-export const entries = pgTable(
+export const entries = sqliteTable(
   "entries",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
     kind: text().notNull(),
     description: text().notNull(),
     date: date().notNull(),
-    amount: bigint({ mode: "bigint" }).notNull(),
-    input: jsonb()
-      .$type<EntryInput | RefundInput | { reverses: string; reason?: string }>()
-      .notNull(),
+    amount: bigint().notNull(),
+    input: jsonb<
+      EntryInput | RefundInput | { reverses: string; reason?: string }
+    >().notNull(),
     actor: text().notNull(),
     idempotencyKey: uuid().notNull(),
     requestHash: text().notNull(),
@@ -249,7 +324,7 @@ export const entries = pgTable(
     refundOf: uuid(),
     corrects: uuid(),
     correctionReason: text(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestampNow(),
   },
   (t) => [
     unique("entry_group_id").on(t.groupId, t.id),
@@ -277,10 +352,11 @@ export const entries = pgTable(
     ),
   ],
 );
-export const attachments = pgTable(
+
+export const attachments = sqliteTable(
   "attachments",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
@@ -291,7 +367,7 @@ export const attachments = pgTable(
     contentType: text().notNull(),
     size: integer().notNull(),
     createdBy: text().notNull(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestampNow(),
   },
   (t) => [
     foreignKey({
@@ -301,19 +377,20 @@ export const attachments = pgTable(
     index("attachments_entry").on(t.groupId, t.entryId),
   ],
 );
-export const effects = pgTable(
+
+export const effects = sqliteTable(
   "entry_effects",
   {
     groupId: uuid().notNull(),
     entryId: uuid().notNull(),
     memberId: uuid().notNull(),
-    allocatedIncome: bigint({ mode: "bigint" }).notNull(),
-    allocatedExpense: bigint({ mode: "bigint" }).notNull(),
-    activityCash: bigint({ mode: "bigint" }).notNull(),
-    transferCash: bigint({ mode: "bigint" }).notNull(),
-    settlementCash: bigint({ mode: "bigint" }).notNull(),
-    obligation: bigint({ mode: "bigint" }).notNull(),
-    correction: bigint({ mode: "bigint" }).notNull(),
+    allocatedIncome: bigint().notNull(),
+    allocatedExpense: bigint().notNull(),
+    activityCash: bigint().notNull(),
+    transferCash: bigint().notNull(),
+    settlementCash: bigint().notNull(),
+    obligation: bigint().notNull(),
+    correction: bigint().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.entryId, t.memberId] }),
@@ -330,21 +407,21 @@ export const effects = pgTable(
 );
 
 // Drafts never have journal effects. Every edit preserves an audit revision.
-export const drafts = pgTable(
+export const drafts = sqliteTable(
   "drafts",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
-    input: jsonb().$type<EntryInput>().notNull(),
+    input: jsonb<EntryInput>().notNull(),
     version: integer().notNull().default(1),
     state: text().notNull().default("draft"),
     postedEntryId: uuid(),
     createdBy: text().notNull(),
     updatedBy: text().notNull(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestampNow(),
+    updatedAt: timestampNow(),
   },
   (t) => [
     unique("draft_group_id").on(t.groupId, t.id),
@@ -361,16 +438,17 @@ export const drafts = pgTable(
     }),
   ],
 );
-export const draftRevisions = pgTable(
+
+export const draftRevisions = sqliteTable(
   "draft_revisions",
   {
     groupId: uuid().notNull(),
     draftId: uuid().notNull(),
     version: integer().notNull(),
-    input: jsonb().$type<EntryInput>().notNull(),
+    input: jsonb<EntryInput>().notNull(),
     state: text().notNull(),
     actor: text().notNull(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestampNow(),
   },
   (t) => [
     primaryKey({ columns: [t.draftId, t.version] }),
@@ -380,24 +458,26 @@ export const draftRevisions = pgTable(
     }),
   ],
 );
-export const previews = pgTable(
+
+export const previews = sqliteTable(
   "financial_previews",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
     actor: text().notNull(),
     requestHash: text().notNull(),
-    ledgerVersion: bigint({ mode: "bigint" }).notNull(),
-    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    ledgerVersion: bigint().notNull(),
+    expiresAt: timestamp().notNull(),
   },
   (t) => [
     index("previews_expiry").on(t.expiresAt),
     unique("preview_group_id").on(t.groupId, t.id),
   ],
 );
-export const financialRequests = pgTable(
+
+export const financialRequests = sqliteTable(
   "financial_requests",
   {
     groupId: uuid()
@@ -406,12 +486,13 @@ export const financialRequests = pgTable(
     key: uuid().notNull(),
     actor: text().notNull(),
     requestHash: text().notNull(),
-    entryIds: jsonb().$type<string[]>().notNull(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    entryIds: jsonb<string[]>().notNull(),
+    createdAt: timestampNow(),
   },
   (t) => [primaryKey({ columns: [t.groupId, t.key] })],
 );
-export const draftRequests = pgTable(
+
+export const draftRequests = sqliteTable(
   "draft_requests",
   {
     groupId: uuid()
@@ -420,15 +501,13 @@ export const draftRequests = pgTable(
     key: uuid().notNull(),
     actor: text().notNull(),
     requestHash: text().notNull(),
-    result: jsonb()
-      .$type<{ id: string; version: number; state: string }>()
-      .notNull(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    result: jsonb<{ id: string; version: number; state: string }>().notNull(),
+    createdAt: timestampNow(),
   },
   (t) => [primaryKey({ columns: [t.groupId, t.key] })],
 );
 
-export const invitations = pgTable(
+export const invitations = sqliteTable(
   "invitations",
   {
     id: uuid().primaryKey(),
@@ -441,8 +520,8 @@ export const invitations = pgTable(
     state: text().notNull().default("pending"),
     createdBy: text().notNull(),
     acceptedBy: text(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    createdAt: timestampNow(),
+    expiresAt: timestamp().notNull(),
     delivery: text().notNull().default("link"),
   },
   (t) => [
@@ -463,22 +542,22 @@ export const invitations = pgTable(
   ],
 );
 
-export const managementEvents = pgTable(
+export const managementEvents = sqliteTable(
   "management_events",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    id: uuidPrimaryKey(),
     groupId: uuid()
       .notNull()
       .references(() => groups.id),
     actor: text().notNull(),
     action: text().notNull(),
-    details: jsonb().$type<Record<string, unknown>>().notNull(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    details: jsonb<Record<string, unknown>>().notNull(),
+    createdAt: timestampNow(),
   },
   (t) => [index("management_events_group").on(t.groupId, t.createdAt)],
 );
 
-export const managementRequests = pgTable(
+export const managementRequests = sqliteTable(
   "management_requests",
   {
     groupId: uuid()
@@ -487,7 +566,7 @@ export const managementRequests = pgTable(
     key: uuid().notNull(),
     actor: text().notNull(),
     requestHash: text().notNull(),
-    result: jsonb().$type<{ id?: string }>().notNull(),
+    result: jsonb<{ id?: string }>().notNull(),
   },
   (t) => [primaryKey({ columns: [t.groupId, t.key] })],
 );

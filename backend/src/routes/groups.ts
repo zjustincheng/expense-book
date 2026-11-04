@@ -140,66 +140,63 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
     const { groupId } = groupParams.parse(request.params);
     const grant = await checkAccess(db, groupId, request.subject);
     // One snapshot keeps totals and activity consistent during concurrent posting.
-    return db.transaction(
-      async (tx) => {
-        const [group] = await tx
-          .select()
-          .from(groups)
-          .where(eq(groups.id, groupId));
-        const groupMembers = await tx
-          .select()
-          .from(members)
-          .where(eq(members.groupId, groupId))
-          .orderBy(members.id);
-        const sums = await tx
-          .select({
-            memberId: effects.memberId,
-            allocatedIncome: sql<string>`sum(${effects.allocatedIncome})::text`,
-            allocatedExpense: sql<string>`sum(${effects.allocatedExpense})::text`,
-            activityCash: sql<string>`sum(${effects.activityCash})::text`,
-            transferCash: sql<string>`sum(${effects.transferCash})::text`,
-            settlementCash: sql<string>`sum(${effects.settlementCash})::text`,
-            obligation: sql<string>`sum(${effects.obligation})::text`,
-            correction: sql<string>`sum(${effects.correction})::text`,
-          })
-          .from(effects)
-          .where(eq(effects.groupId, groupId))
-          .groupBy(effects.memberId);
-        const totals = new Map(
-          sums.map((row) => {
-            const effect = emptyEffect(row.memberId);
-            for (const field of fields) effect[field] = BigInt(row[field]);
-            return [row.memberId, effect];
-          }),
-        );
-        const balances = groupMembers.map((member) => {
-          const effect = totals.get(member.id) ?? emptyEffect(member.id);
-          return { ...member, ...effect, outstanding: outstanding(effect) };
-        });
-        const activity = await tx
-          .select()
-          .from(entries)
-          .where(eq(entries.groupId, groupId))
-          .orderBy(desc(entries.date), desc(entries.createdAt))
-          .limit(100);
-        return json({
-          ...group,
-          role: grant.role,
-          members: balances,
-          entries: activity,
-          totals: {
-            income: balances.reduce((s, b) => s + b.allocatedIncome, 0n),
-            expenses: balances.reduce((s, b) => s + b.allocatedExpense, 0n),
-            unsettled: balances.reduce(
-              (s, b) => s + (b.outstanding > 0n ? b.outstanding : 0n),
-              0n,
-            ),
-          },
-          suggestions: suggestSettlements(balances),
-        });
-      },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
-    );
+    return db.transaction(async (tx) => {
+      const [group] = await tx
+        .select()
+        .from(groups)
+        .where(eq(groups.id, groupId));
+      const groupMembers = await tx
+        .select()
+        .from(members)
+        .where(eq(members.groupId, groupId))
+        .orderBy(members.id);
+      const sums = await tx
+        .select({
+          memberId: effects.memberId,
+          allocatedIncome: sql<string>`cast(sum(${effects.allocatedIncome}) as text)`,
+          allocatedExpense: sql<string>`cast(sum(${effects.allocatedExpense}) as text)`,
+          activityCash: sql<string>`cast(sum(${effects.activityCash}) as text)`,
+          transferCash: sql<string>`cast(sum(${effects.transferCash}) as text)`,
+          settlementCash: sql<string>`cast(sum(${effects.settlementCash}) as text)`,
+          obligation: sql<string>`cast(sum(${effects.obligation}) as text)`,
+          correction: sql<string>`cast(sum(${effects.correction}) as text)`,
+        })
+        .from(effects)
+        .where(eq(effects.groupId, groupId))
+        .groupBy(effects.memberId);
+      const totals = new Map(
+        sums.map((row) => {
+          const effect = emptyEffect(row.memberId);
+          for (const field of fields) effect[field] = BigInt(row[field]);
+          return [row.memberId, effect];
+        }),
+      );
+      const balances = groupMembers.map((member) => {
+        const effect = totals.get(member.id) ?? emptyEffect(member.id);
+        return { ...member, ...effect, outstanding: outstanding(effect) };
+      });
+      const activity = await tx
+        .select()
+        .from(entries)
+        .where(eq(entries.groupId, groupId))
+        .orderBy(desc(entries.date), desc(entries.createdAt))
+        .limit(100);
+      return json({
+        ...group,
+        role: grant.role,
+        members: balances,
+        entries: activity,
+        totals: {
+          income: balances.reduce((s, b) => s + b.allocatedIncome, 0n),
+          expenses: balances.reduce((s, b) => s + b.allocatedExpense, 0n),
+          unsettled: balances.reduce(
+            (s, b) => s + (b.outstanding > 0n ? b.outstanding : 0n),
+            0n,
+          ),
+        },
+        suggestions: suggestSettlements(balances),
+      });
+    });
   });
   app.get("/groups/:groupId/reports", async (request) => {
     const { groupId } = groupParams.parse(request.params);
@@ -214,16 +211,16 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
     if (query.search) {
       const term = `%${query.search}%`;
       conditions.push(
-        sql`(${entries.description} ilike ${term} or ${entries.input}->>'project' ilike ${term} or ${entries.input}->>'category' ilike ${term})`,
+        sql`(lower(${entries.description}) like lower(${term}) or lower(coalesce(${entries.input}->>'project', '')) like lower(${term}) or lower(coalesce(${entries.input}->>'category', '')) like lower(${term}))`,
       );
     }
     if (query.project)
       conditions.push(
-        sql`${entries.input}->>'project' ilike ${`%${query.project}%`}`,
+        sql`lower(coalesce(${entries.input}->>'project', '')) like lower(${`%${query.project}%`})`,
       );
     if (query.category)
       conditions.push(
-        sql`${entries.input}->>'category' ilike ${`%${query.category}%`}`,
+        sql`lower(coalesce(${entries.input}->>'category', '')) like lower(${`%${query.category}%`})`,
       );
     if (query.memberId)
       conditions.push(
@@ -231,40 +228,37 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
           sql`select 1 from entry_effects report_effect where report_effect."groupId" = ${groupId} and report_effect."entryId" = ${entries.id} and report_effect."memberId" = ${query.memberId}`,
         ),
       );
-    return db.transaction(
-      async (tx) => {
-        const rows = await tx
-          .select()
-          .from(entries)
-          .where(and(...conditions))
-          .orderBy(desc(entries.date), desc(entries.createdAt))
-          .limit(query.pageSize + 1)
-          .offset((query.page - 1) * query.pageSize);
-        const hasMore = rows.length > query.pageSize;
-        rows.splice(query.pageSize);
-        const aggregateRows = await tx
-          .select({ kind: entries.kind, amount: entries.amount })
-          .from(entries)
-          .where(and(...conditions));
-        const totals = new Map<string, bigint>();
-        for (const row of aggregateRows)
-          totals.set(row.kind, (totals.get(row.kind) ?? 0n) + row.amount);
-        return json({
-          records: rows,
-          totals: Object.fromEntries(totals),
-          count: aggregateRows.length,
-          pageCount: rows.length,
-          totalPages: Math.max(
-            1,
-            Math.ceil(aggregateRows.length / query.pageSize),
-          ),
-          page: query.page,
-          pageSize: query.pageSize,
-          hasMore,
-        });
-      },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
-    );
+    return db.transaction(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(entries)
+        .where(and(...conditions))
+        .orderBy(desc(entries.date), desc(entries.createdAt))
+        .limit(query.pageSize + 1)
+        .offset((query.page - 1) * query.pageSize);
+      const hasMore = rows.length > query.pageSize;
+      rows.splice(query.pageSize);
+      const aggregateRows = await tx
+        .select({ kind: entries.kind, amount: entries.amount })
+        .from(entries)
+        .where(and(...conditions));
+      const totals = new Map<string, bigint>();
+      for (const row of aggregateRows)
+        totals.set(row.kind, (totals.get(row.kind) ?? 0n) + row.amount);
+      return json({
+        records: rows,
+        totals: Object.fromEntries(totals),
+        count: aggregateRows.length,
+        pageCount: rows.length,
+        totalPages: Math.max(
+          1,
+          Math.ceil(aggregateRows.length / query.pageSize),
+        ),
+        page: query.page,
+        pageSize: query.pageSize,
+        hasMore,
+      });
+    });
   });
   app.get("/groups/:groupId/activity", async (request) => {
     const { groupId } = groupParams.parse(request.params);
@@ -273,15 +267,15 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
     const conditions = [eq(entries.groupId, groupId)];
     if (query.search)
       conditions.push(
-        sql`(${entries.description} ilike ${`%${query.search}%`} or ${entries.input}->>'project' ilike ${`%${query.search}%`} or ${entries.input}->>'category' ilike ${`%${query.search}%`})`,
+        sql`(lower(${entries.description}) like lower(${`%${query.search}%`}) or lower(coalesce(${entries.input}->>'project', '')) like lower(${`%${query.search}%`}) or lower(coalesce(${entries.input}->>'category', '')) like lower(${`%${query.search}%`}))`,
       );
     if (query.project)
       conditions.push(
-        sql`${entries.input}->>'project' ilike ${`%${query.project}%`}`,
+        sql`lower(coalesce(${entries.input}->>'project', '')) like lower(${`%${query.project}%`})`,
       );
     if (query.category)
       conditions.push(
-        sql`${entries.input}->>'category' ilike ${`%${query.category}%`}`,
+        sql`lower(coalesce(${entries.input}->>'category', '')) like lower(${`%${query.category}%`})`,
       );
     if (query.kind) conditions.push(eq(entries.kind, query.kind));
     const rows = await db

@@ -46,76 +46,71 @@ export function registerFinancialRoutes(app: FastifyInstance, db: Database) {
       .extend({ entryId: z.string().uuid() })
       .parse(request.params);
     await authorize(db, groupId, request.subject);
-    return db.transaction(
-      async (tx) => {
-        const [entry] = await tx
-          .select()
-          .from(entries)
-          .where(and(eq(entries.groupId, groupId), eq(entries.id, entryId)));
-        if (!entry) fail("Entry not found.", 404);
-        const rows = await tx
-          .select()
-          .from(effects)
-          .where(
-            and(eq(effects.groupId, groupId), eq(effects.entryId, entryId)),
-          );
-        const related = await tx
-          .select()
-          .from(entries)
-          .where(
-            and(
-              eq(entries.groupId, groupId),
-              or(
-                eq(entries.reverses, entryId),
-                eq(entries.refundOf, entryId),
-                eq(entries.corrects, entryId),
-              ),
+    return db.transaction(async (tx) => {
+      const [entry] = await tx
+        .select()
+        .from(entries)
+        .where(and(eq(entries.groupId, groupId), eq(entries.id, entryId)));
+      if (!entry) fail("Entry not found.", 404);
+      const rows = await tx
+        .select()
+        .from(effects)
+        .where(and(eq(effects.groupId, groupId), eq(effects.entryId, entryId)));
+      const related = await tx
+        .select()
+        .from(entries)
+        .where(
+          and(
+            eq(entries.groupId, groupId),
+            or(
+              eq(entries.reverses, entryId),
+              eq(entries.refundOf, entryId),
+              eq(entries.corrects, entryId),
             ),
-          )
-          .orderBy(entries.createdAt);
-        const refundIds = related
-          .filter((record) => record.refundOf === entryId)
-          .map((record) => record.id);
-        const reversedRefunds = refundIds.length
-          ? await tx
-              .select({ reverses: entries.reverses })
-              .from(entries)
-              .where(
-                and(
-                  eq(entries.groupId, groupId),
-                  inArray(entries.reverses, refundIds),
-                ),
-              )
-          : [];
-        const reversedIds = new Set(
-          reversedRefunds.map((record) => record.reverses),
-        );
-        const refunded = related
-          .filter(
-            (record) =>
-              record.refundOf === entryId && !reversedIds.has(record.id),
-          )
-          .reduce((sum, record) => sum + record.amount, 0n);
-        const state = related.some((record) => record.reverses === entryId)
-          ? "reversed"
-          : "posted";
-        return json({
-          ...entry,
-          state,
-          related,
-          remainingRefundable:
-            state === "posted" &&
-            (entry.kind === "income" || entry.kind === "expense")
-              ? entry.amount - refunded
-              : null,
-          effects: rows.map((effect) => ({
-            ...effect,
-            outstanding: outstanding(effect),
-          })),
-        });
-      },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
-    );
+          ),
+        )
+        .orderBy(entries.createdAt);
+      const refundIds = related
+        .filter((record) => record.refundOf === entryId)
+        .map((record) => record.id);
+      const reversedRefunds = refundIds.length
+        ? await tx
+            .select({ reverses: entries.reverses })
+            .from(entries)
+            .where(
+              and(
+                eq(entries.groupId, groupId),
+                inArray(entries.reverses, refundIds),
+              ),
+            )
+        : [];
+      const reversedIds = new Set(
+        reversedRefunds.map((record) => record.reverses),
+      );
+      const refunded = related
+        .filter(
+          (record) =>
+            record.refundOf === entryId && !reversedIds.has(record.id),
+        )
+        .reduce((sum, record) => sum + record.amount, 0n);
+      const state = related.some((record) => record.reverses === entryId)
+        ? "reversed"
+        : "posted";
+      return json({
+        ...entry,
+        state,
+        related,
+        remainingRefundable:
+          state === "posted" &&
+          (entry.kind === "income" || entry.kind === "expense")
+            ? entry.amount - refunded
+            : null,
+        effects: rows.map((effect) => ({
+          ...effect,
+          outstanding: outstanding(effect),
+        })),
+      });
+    });
   });
   app.get("/groups/:groupId/drafts", async (request) => {
     const { groupId } = groupParams.parse(request.params);
@@ -132,27 +127,24 @@ export function registerFinancialRoutes(app: FastifyInstance, db: Database) {
       .extend({ draftId: z.string().uuid() })
       .parse(request.params);
     await authorize(db, groupId, request.subject);
-    return db.transaction(
-      async (tx) => {
-        const [draft] = await tx
-          .select()
-          .from(drafts)
-          .where(and(eq(drafts.groupId, groupId), eq(drafts.id, draftId)));
-        if (!draft) fail("Draft not found.", 404);
-        const revisions = await tx
-          .select()
-          .from(draftRevisions)
-          .where(
-            and(
-              eq(draftRevisions.groupId, groupId),
-              eq(draftRevisions.draftId, draftId),
-            ),
-          )
-          .orderBy(draftRevisions.version);
-        return { ...draft, revisions };
-      },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
-    );
+    return db.transaction(async (tx) => {
+      const [draft] = await tx
+        .select()
+        .from(drafts)
+        .where(and(eq(drafts.groupId, groupId), eq(drafts.id, draftId)));
+      if (!draft) fail("Draft not found.", 404);
+      const revisions = await tx
+        .select()
+        .from(draftRevisions)
+        .where(
+          and(
+            eq(draftRevisions.groupId, groupId),
+            eq(draftRevisions.draftId, draftId),
+          ),
+        )
+        .orderBy(draftRevisions.version);
+      return { ...draft, revisions };
+    });
   });
   app.post("/groups/:groupId/drafts", async (request, reply) => {
     const { groupId } = groupParams.parse(request.params);

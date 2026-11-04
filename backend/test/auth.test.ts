@@ -1,7 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import type { FastifyRequest } from "fastify";
+import { createApp } from "../src/app.js";
 import { createAuthenticator } from "../src/auth.js";
+import { testDatabase } from "./test-database.js";
 
 let keys: Awaited<ReturnType<typeof generateKeyPair>>;
 let jwks: ReturnType<typeof createLocalJWKSet>;
@@ -107,5 +109,86 @@ describe("Cognito identity verification", () => {
     await expect(identity.verifiedEmail()).rejects.toMatchObject({
       statusCode: 503,
     });
+  });
+});
+
+describe("Local SQLite account authentication", () => {
+  it("registers, signs in, verifies session identity, and revokes on logout", async () => {
+    const database = await testDatabase();
+    const authenticate = createAuthenticator(
+      { AUTH_MODE: "local" },
+      { db: database.db },
+    );
+    const app = await createApp(database.db, authenticate, { logging: false });
+    try {
+      const reg = await app.inject({
+        method: "POST",
+        url: "/api/auth/register",
+        payload: {
+          email: "Alice@Example.test",
+          password: "correct-horse-battery",
+          name: "Alice",
+        },
+      });
+      expect(reg.statusCode).toBe(201);
+      const { token: regToken, user } = reg.json();
+      expect(user.email).toBe("alice@example.test");
+
+      const dup = await app.inject({
+        method: "POST",
+        url: "/api/auth/register",
+        payload: {
+          email: "alice@example.test",
+          password: "another-password-123",
+        },
+      });
+      expect(dup.statusCode).toBe(409);
+
+      const sessionRes = await app.inject({
+        url: "/api/session",
+        headers: { authorization: `Bearer ${regToken}` },
+      });
+      expect(sessionRes.statusCode).toBe(200);
+      expect(sessionRes.json()).toMatchObject({
+        subject: user.id,
+        verifiedEmail: "alice@example.test",
+      });
+
+      const badLogin = await app.inject({
+        method: "POST",
+        url: "/api/auth/login",
+        payload: {
+          email: "alice@example.test",
+          password: "wrong-password-123",
+        },
+      });
+      expect(badLogin.statusCode).toBe(401);
+
+      const login = await app.inject({
+        method: "POST",
+        url: "/api/auth/login",
+        payload: {
+          email: "ALICE@example.test",
+          password: "correct-horse-battery",
+        },
+      });
+      expect(login.statusCode).toBe(200);
+      const loginToken = login.json().token as string;
+
+      await app.inject({
+        method: "POST",
+        url: "/api/auth/logout",
+        headers: { authorization: `Bearer ${loginToken}` },
+      });
+
+      const afterLogout = await app.inject({
+        url: "/api/session",
+        headers: { authorization: `Bearer ${loginToken}` },
+      });
+      expect(afterLogout.statusCode).toBe(401);
+    } finally {
+      await app.close();
+      await database.close();
+    }
   });
 });

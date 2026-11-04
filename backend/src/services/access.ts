@@ -28,17 +28,12 @@ export async function lockGroup(
 ) {
   // Check before taking a lock so guessed group IDs cannot block another tenant's writes.
   await authorize(tx, groupId, subject, true);
-  const [group] = await tx
-    .select()
-    .from(groups)
-    .where(eq(groups.id, groupId))
-    .for("update");
+  const [group] = await tx.select().from(groups).where(eq(groups.id, groupId));
   if (!group) fail("Group not found.", 404);
   const [grant] = await tx
     .select()
     .from(access)
-    .where(and(eq(access.groupId, groupId), eq(access.subject, subject)))
-    .for("share");
+    .where(and(eq(access.groupId, groupId), eq(access.subject, subject)));
   if (!grant) fail("Group not found.", 404);
   if (grant.role === "viewer")
     fail("You have read-only access to this group.", 403);

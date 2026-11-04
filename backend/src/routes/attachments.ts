@@ -8,9 +8,12 @@ import { authorize } from "../services/access.js";
 import {
   deleteObject,
   downloadUrl,
+  isLocalStorage,
   objectKey,
+  readLocalObject,
   uploadUrl,
   inspectObject,
+  writeLocalObject,
   type AttachmentStorage,
 } from "../services/attachments.js";
 
@@ -30,6 +33,18 @@ export function registerAttachmentRoutes(
   db: Database,
   storage?: AttachmentStorage,
 ) {
+  for (const contentType of allowed) {
+    if (!app.hasContentTypeParser(contentType)) {
+      app.addContentTypeParser(
+        contentType,
+        { parseAs: "buffer", bodyLimit: 10_485_760 },
+        (_request, body, done) => {
+          done(null, body);
+        },
+      );
+    }
+  }
+
   app.get("/groups/:groupId/entries/:entryId/attachments", async (request) => {
     const { groupId, entryId } = params.parse(request.params);
     await authorize(db, groupId, request.subject);
@@ -91,9 +106,86 @@ export function registerAttachmentRoutes(
         });
       return reply.code(201).send({
         ...created,
-        uploadUrl: await uploadUrl(storage, key, input.contentType, input.size),
+        uploadUrl: await uploadUrl(
+          storage,
+          key,
+          input.contentType,
+          input.size,
+          { groupId, attachmentId: created!.id },
+        ),
         expiresIn: 300,
       });
+    },
+  );
+  app.put(
+    "/groups/:groupId/attachments/:attachmentId/file",
+    { bodyLimit: 10_485_760 },
+    async (request) => {
+      const { groupId, attachmentId } = z
+        .object({
+          groupId: z.string().uuid(),
+          attachmentId: z.string().uuid(),
+        })
+        .parse(request.params);
+      await authorize(db, groupId, request.subject, true);
+      if (!storage || !isLocalStorage(storage))
+        fail("Local attachment storage is not configured.", 503);
+      const [attachment] = await db
+        .select()
+        .from(attachments)
+        .where(
+          and(
+            eq(attachments.groupId, groupId),
+            eq(attachments.id, attachmentId),
+          ),
+        );
+      if (!attachment) fail("Attachment not found.", 404);
+      if (attachment.uploadState === "ready")
+        fail("Attachment has already been uploaded.", 409);
+      const contentType =
+        request.headers["content-type"]?.split(";")[0]?.trim() ?? "";
+      const body = Buffer.isBuffer(request.body)
+        ? request.body
+        : typeof request.body === "string"
+          ? Buffer.from(request.body, "utf8")
+          : null;
+      if (!body || !body.byteLength) fail("Attachment body is required.", 400);
+      await writeLocalObject(storage, attachment.objectKey, body, contentType);
+      return { uploaded: true };
+    },
+  );
+  app.get(
+    "/groups/:groupId/attachments/:attachmentId/file",
+    async (request, reply) => {
+      const { groupId, attachmentId } = z
+        .object({
+          groupId: z.string().uuid(),
+          attachmentId: z.string().uuid(),
+        })
+        .parse(request.params);
+      await authorize(db, groupId, request.subject);
+      if (!storage || !isLocalStorage(storage))
+        fail("Local attachment storage is not configured.", 503);
+      const [attachment] = await db
+        .select()
+        .from(attachments)
+        .where(
+          and(
+            eq(attachments.groupId, groupId),
+            eq(attachments.id, attachmentId),
+          ),
+        );
+      if (!attachment) fail("Attachment not found.", 404);
+      if (attachment.uploadState !== "ready")
+        fail("Upload has not been completed.", 409);
+      const buffer = await readLocalObject(storage, attachment.objectKey);
+      const safeName = attachment.fileName.replaceAll('"', "");
+      return reply
+        .header("Content-Type", attachment.contentType)
+        .header("Content-Length", buffer.byteLength)
+        .header("Content-Disposition", `attachment; filename="${safeName}"`)
+        .header("Cache-Control", "private, no-store")
+        .send(buffer);
     },
   );
   // Second half of the upload. The reservation row exists before the browser has
@@ -120,8 +212,7 @@ export function registerAttachmentRoutes(
               eq(attachments.groupId, groupId),
               eq(attachments.id, attachmentId),
             ),
-          )
-          .for("update");
+          );
         if (!attachment) fail("Attachment not found.", 404);
         if (attachment.uploadState === "ready") return { ready: true };
         let object;
@@ -186,6 +277,7 @@ export function registerAttachmentRoutes(
           storage,
           attachment.objectKey,
           attachment.fileName,
+          { groupId, attachmentId },
         ),
         expiresIn: 300,
       };

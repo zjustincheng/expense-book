@@ -6,6 +6,7 @@ import rateLimit from "@fastify/rate-limit";
 import { z, ZodError } from "zod";
 import type { Database } from "./db/client.js";
 import type { Authenticate, Identity } from "./auth.js";
+import { registerAuthRoutes } from "./routes/auth.js";
 import { registerGroupRoutes } from "./routes/groups.js";
 import { registerManagementRoutes } from "./routes/management.js";
 import type { InvitationDelivery } from "./services/invitation-delivery.js";
@@ -75,6 +76,12 @@ export async function createApp(
       return reply.code(503).send({ status: "unavailable" });
     }
   });
+  app.register(
+    async (authApi) => {
+      registerAuthRoutes(authApi, db);
+    },
+    { prefix: "/api/auth" },
+  );
   app.register(
     async (api) => {
       api.addHook("onRequest", async (request) => {

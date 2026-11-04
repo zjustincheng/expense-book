@@ -1,11 +1,9 @@
-import { migrate } from "drizzle-orm/node-postgres/migrator";
-import { connectDatabase } from "./client.js";
-if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
-const { db, pool } = connectDatabase(process.env.DATABASE_URL);
+import { applyMigrations, connectDatabase } from "./client.js";
+
+const databaseUrl = process.env.DATABASE_URL ?? "./data/expense-book.sqlite";
+const { pool } = connectDatabase(databaseUrl);
 try {
-  await migrate(db, {
-    migrationsFolder: new URL("../../drizzle", import.meta.url).pathname,
-  });
+  await applyMigrations(pool);
 } finally {
   await pool.end();
 }

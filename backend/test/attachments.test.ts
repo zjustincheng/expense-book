@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { eq } from "drizzle-orm";
 import {
@@ -296,4 +299,82 @@ it("keeps the attachment when S3 denies deletion and permits a successful retry"
   expect(await saved()).toHaveLength(1);
   expect((await remove()).statusCode).toBe(200);
   expect(await saved()).toHaveLength(0);
+});
+
+it("stores, verifies, downloads, and deletes attachments on the local filesystem", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "expense-book-attachments-"));
+  const localApp = await createApp(
+    database.db,
+    async () => ({
+      subject: "alice",
+      verifiedEmail: async () => "alice@example.test",
+    }),
+    {
+      logging: false,
+      attachments: { directory: dir },
+    },
+  );
+  try {
+    const content = "Sample receipt content\nTotal: $100.00";
+    const size = Buffer.byteLength(content);
+    const reserved = await localApp.inject({
+      method: "POST",
+      url: `/api/groups/${groupId}/entries/${entryId}/attachments`,
+      payload: {
+        fileName: "local-receipt.txt",
+        contentType: "text/plain",
+        size,
+      },
+    });
+    expect(reserved.statusCode).toBe(201);
+    const { id: localId, uploadUrl } = reserved.json();
+    expect(uploadUrl).toBe(
+      `/api/groups/${groupId}/attachments/${localId}/file`,
+    );
+
+    const beforeUpload = await localApp.inject({
+      method: "POST",
+      url: `/api/groups/${groupId}/attachments/${localId}/complete`,
+      payload: {},
+    });
+    expect(beforeUpload.statusCode).toBe(409);
+
+    const putRes = await localApp.inject({
+      method: "PUT",
+      url: uploadUrl,
+      headers: { "content-type": "text/plain" },
+      payload: content,
+    });
+    expect(putRes.statusCode).toBe(200);
+
+    const completed = await localApp.inject({
+      method: "POST",
+      url: `/api/groups/${groupId}/attachments/${localId}/complete`,
+      payload: {},
+    });
+    expect(completed.statusCode).toBe(200);
+
+    const dlMeta = await localApp.inject({
+      url: `/api/groups/${groupId}/attachments/${localId}/download`,
+    });
+    expect(dlMeta.statusCode).toBe(200);
+    expect(dlMeta.json().downloadUrl).toBe(
+      `/api/groups/${groupId}/attachments/${localId}/file`,
+    );
+
+    const downloaded = await localApp.inject({
+      url: dlMeta.json().downloadUrl,
+    });
+    expect(downloaded.statusCode).toBe(200);
+    expect(downloaded.body).toBe(content);
+
+    const deleted = await localApp.inject({
+      method: "DELETE",
+      url: `/api/groups/${groupId}/attachments/${localId}`,
+    });
+    expect(deleted.statusCode).toBe(200);
+  } finally {
+    await localApp.close();
+    await rm(dir, { recursive: true, force: true });
+  }
 });

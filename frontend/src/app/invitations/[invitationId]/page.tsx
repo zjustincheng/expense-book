@@ -1,5 +1,5 @@
 import { InvitationPage } from "@/components/invitation-page";
-import { isSignedIn } from "@/lib/auth";
+import { isAuthConfigured, isSignedIn } from "@/lib/auth";
 export default async function Page({
   params,
 }: {
@@ -9,7 +9,7 @@ export default async function Page({
   return (
     <InvitationPage
       invitationId={invitationId}
-      canReview={!process.env.COGNITO_CLIENT_ID || (await isSignedIn())}
+      canReview={!isAuthConfigured() || (await isSignedIn())}
     />
   );
 }

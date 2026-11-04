@@ -33,8 +33,7 @@ export async function cleanupPendingAttachments(
               eq(attachments.uploadState, "pending"),
               lt(attachments.createdAt, cutoff),
             ),
-          )
-          .for("update");
+          );
         if (!row) return 0;
         // An ambiguous storage failure rolls back and retains the reference for retry.
         await deleteObject(storage, row.objectKey);

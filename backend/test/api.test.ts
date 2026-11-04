@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { readFile, readdir } from "node:fs/promises";
-import { PGlite } from "@electric-sql/pglite";
-import { drizzle } from "drizzle-orm/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
-import type { Database } from "../src/db/client.js";
+import {
+  applyMigrations,
+  connectDatabase,
+  type Database,
+} from "../src/db/client.js";
 import { createAuthenticator } from "../src/auth.js";
 import * as schema from "../src/db/schema.js";
 
@@ -26,25 +27,12 @@ const incomeInput = () => ({
 });
 
 beforeAll(async () => {
-  let execute: (sql: string) => Promise<unknown>;
-  if (process.env.TEST_DATABASE_URL) {
-    const connection = (await import("../src/db/client.js")).connectDatabase(
-      process.env.TEST_DATABASE_URL,
-    );
-    db = connection.db;
-    execute = (sql) => connection.pool.query(sql);
-    closeDatabase = () => connection.pool.end();
-  } else {
-    const client = new PGlite();
-    db = drizzle(client, { schema }) as unknown as Database;
-    execute = (sql) => client.exec(sql);
-    closeDatabase = () => client.close();
-  }
-  const migrationDir = new URL("../drizzle/", import.meta.url);
-  for (const file of (await readdir(migrationDir))
-    .filter((name) => name.endsWith(".sql"))
-    .sort())
-    await execute(await readFile(new URL(file, migrationDir), "utf8"));
+  const connection = connectDatabase(
+    process.env.TEST_DATABASE_URL ?? ":memory:",
+  );
+  db = connection.db;
+  closeDatabase = () => connection.pool.end();
+  await applyMigrations(connection.pool);
   app = await createApp(
     db,
     async (request) => {

@@ -98,11 +98,11 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         // the existing anchor, so renaming a schedule cannot quietly reset a
         // month-end anchor that is currently clamped to a shorter month.
         anchorDay: input.nextRun
-          ? sql`case when ${input.frequency ?? sql`${recurringTransactions.frequency}`} = 'weekly' then null when ${recurringTransactions.nextRun} = ${input.nextRun}::date then coalesce(${recurringTransactions.anchorDay}, ${Number(input.nextRun.slice(8, 10))}::integer) else ${Number(input.nextRun.slice(8, 10))}::integer end`
+          ? sql`case when ${input.frequency ?? sql`${recurringTransactions.frequency}`} = 'weekly' then null when ${recurringTransactions.nextRun} = ${input.nextRun} then coalesce(${recurringTransactions.anchorDay}, ${Number(input.nextRun.slice(8, 10))}) else ${Number(input.nextRun.slice(8, 10))} end`
           : input.frequency === "weekly"
             ? null
             : input.frequency
-              ? sql`coalesce(${recurringTransactions.anchorDay}, extract(day from ${recurringTransactions.nextRun})::integer)`
+              ? sql`coalesce(${recurringTransactions.anchorDay}, cast(substr(${recurringTransactions.nextRun}, 9, 2) as integer))`
               : undefined,
         updatedAt: new Date(),
       })
@@ -182,8 +182,7 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
               eq(recurringTransactions.groupId, groupId),
               eq(recurringTransactions.id, recurringId),
             ),
-          )
-          .for("update");
+          );
         if (!row || !row.active)
           fail("Active recurring transaction not found.", 404);
         if (expectedNextRun && expectedNextRun !== row.nextRun)
@@ -271,8 +270,7 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
                 eq(recurringTransactions.groupId, groupId),
                 eq(recurringTransactions.id, candidate.id),
               ),
-            )
-            .for("update");
+            );
           if (
             !row ||
             !row.active ||

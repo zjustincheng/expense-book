@@ -16,3 +16,7 @@ coverage/
 
 test-results/
 playwright-report/
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

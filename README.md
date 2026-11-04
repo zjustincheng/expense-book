@@ -1,51 +1,56 @@
 # Expense Book
 
-A shared-money application built with Next.js, React, TypeScript, Tailwind, shadcn/ui components, a separate Fastify API, PostgreSQL/Drizzle, and Terraform for AWS.
+A shared-money application built with Next.js, React, TypeScript, Tailwind, shadcn/ui components, a Fastify API, and a local SQLite database with Drizzle ORM—packaged for self-hosting on a local Linux machine with Docker Compose and Cloudflare Tunnel (`expbook.culater.cc`).
 
 ## Current milestone
 
-The first working slice supports creating groups at zero, recording income/expenses, direct obligations, transfers, settlements, and non-cash corrections; previewing balance changes; explaining member balances; suggesting settlements; reversing entries; and exporting member balances. The backend lifecycle service also supports drafts, linked partial refunds, atomic corrections, exact preview tokens, and stale-preview protection. The website currently offers equal splits and one cash participant; the API also supports exact amounts, weights, percentages, and multiple cash participants.
+The working application supports creating groups at zero, recording income/expenses, direct obligations, transfers, settlements, and non-cash corrections; previewing balance changes; explaining member balances; suggesting settlements; reversing entries; and exporting member balances. The backend lifecycle service also supports drafts, linked partial refunds, atomic corrections, exact preview tokens, and stale-preview protection.
 
-Cognito authorization-code sign-in with PKCE and access-token verification is implemented but has not been tested against a live AWS user pool. The historical files remain examples only and are not imported.
+Built-in local accounts (`AUTH_MODE=local`) provide email/password registration, sign-in, and session management backed by SQLite, while receipt/file attachments are stored on the local filesystem (`/data/attachments`) alongside the SQLite database (`/data/expense-book.sqlite`).
 
-Admins can now add, rename, archive, and restore members; link their own account; invite people to existing members; and manage admin/editor/viewer access. Invitations expire after seven days and require the invited, verified email to accept. Removing access preserves financial history, and a group must retain at least one admin.
+Admins can add, rename, archive, and restore members; link their own account; invite people to existing members; and manage admin/editor/viewer access. Invitations expire after seven days and require the invited email to accept. Removing access preserves financial history, and a group must retain at least one admin.
 
 Records can be labeled with an optional project/trip and category/tag. Labels appear on activity and can be searched independently, while the original values remain part of each immutable input snapshot.
 
-Admins can create reusable project and category options from **Members & access**. Archived options remain available for historical records but are removed from new record choices.
-
-Admins can also choose a group default split method (equal, weights, percentages, or exact amounts). New activity forms start with that method, and each record can still override it.
-
-Member balance cards link to statements listing every contributing record and that member’s exact balance effect. The API also supports reusable named split templates for the next form enhancement.
-
-Use **Reports** from a group dashboard to filter posted activity by date range, project, category, record type, or member. The page keeps each financial concept separate and exports the filtered rows to CSV.
-
 ## Structure
 
-- `frontend/`: Next.js website, UI components, server-side authentication callback and API proxy.
-- `backend/`: Fastify API, domain calculations, authorization, Drizzle schema/migrations, tests.
-- `infrastructure/`: local PostgreSQL Compose configuration and AWS Terraform foundation.
-- `.github/workflows/`: quality checks and ECS deployment. See [deployment setup](docs/DEPLOYMENT.md) for required GitHub settings.
+- `frontend/`: Next.js website, UI components, local sign-in/registration UI, and API proxy.
+- `backend/`: Fastify API, domain calculations, authorization, SQLite/Drizzle schema & migrations, local account auth, local attachment storage, and tests.
+- `compose.yaml` & `infrastructure/`: Docker Compose stack (`backend`, `frontend`, `cloudflared`) and Cloudflare Tunnel configuration (`infrastructure/cloudflared/config.yml`).
 
-## Run locally
+## Self-hosting with Docker Compose & Cloudflare Tunnel (`expbook.culater.cc`)
 
-Requires Node.js 24, npm, and Docker Compose (or an existing PostgreSQL database).
+1. Copy `.env.example` to `.env` and set your Cloudflare Tunnel token:
+   ```sh
+   cp .env.example .env
+   ```
+2. In the Cloudflare Zero Trust dashboard (**Networks → Tunnels**):
+   - Create or select your tunnel and copy its token into `CLOUDFLARE_TUNNEL_TOKEN` in `.env`.
+   - Add a **Public Hostname** route:
+     - **Domain**: `expbook.culater.cc`
+     - **Service**: `http://frontend:3000`
+3. Start the stack:
+   ```sh
+   docker compose up -d --build
+   ```
+   - SQLite database is persisted on the host at `./data/expense-book.sqlite` (WAL mode enabled).
+   - Attachments are persisted on the host at `./data/attachments`.
+   - The frontend is also bound locally on `http://127.0.0.1:3000` and exposed publicly at `https://expbook.culater.cc` via the `cloudflared` container.
+
+## Run locally for development
+
+Requires Node.js 24 and npm. No external database container is required (uses Node's built-in SQLite engine).
 
 ```sh
 nvm use
 npm ci
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
-docker compose -f infrastructure/compose.yaml up -d
 npm run db:migrate
 npm run dev
 ```
 
-Open `http://localhost:3000`. The API listens on `127.0.0.1:4000`. The example backend environment explicitly enables a local development identity; it is rejected in production and on non-loopback interfaces. Local development groups belong to that shared development identity. Configure Cognito before exposing the app to other users; see [infrastructure setup](infrastructure/README.md).
-
-No demo transactions are inserted. Create a group with two or more members, then use **Add record → Preview balance changes → Confirm and post**.
-
-Open **Members & access** to manage a group. Local development uses `DEV_USER_EMAIL=developer@example.test`; invite that address to try account linking locally. For multiple real users, configure Cognito. Invitation links work without email delivery; optional Amazon SES setup is described in the infrastructure guide.
+Open `http://localhost:3000`. The API listens on `127.0.0.1:4000`. By default, `backend/.env.example` sets `AUTH_MODE=development` for single-user loopback development, or set `AUTH_MODE=local` in both `backend/.env` and `frontend/.env.local` to test full email/password registration and sign-in locally.
 
 ## Verification
 
@@ -58,18 +63,8 @@ npm run build
 npm run test:e2e
 ```
 
-Backend integration tests use an isolated in-memory PostgreSQL engine (PGlite) by default. CI sets `TEST_DATABASE_URL` to a disposable PostgreSQL 17 database. Never point this variable at an existing database: tests apply schema migrations directly and create test records.
-
-Browser tests start their own ephemeral backend and the built frontend. Install a Playwright browser with `npx playwright install chromium`, or use installed Chrome with `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`. Run the production build first. Tests use ports 3100 and 4002, separate from the local preview.
-
-The build uses Next.js's supported webpack option because the local sandbox blocks Turbopack worker sockets. Backend tests and builds do not require AWS credentials.
-
 ## Financial conventions
 
 Money is stored as integer minor units and transported as decimal strings. Expressions use bounded rational arithmetic and round half-up once; splits use largest remainder with stable member-ID ordering. Positive outstanding means a member should receive; negative means they should pay. Transfers and settlements each record a cash movement once. Obligations and corrections do not claim cash moved.
 
-The journal is append-only, records the actor and original input, and uses database transactions, group-scoped foreign keys, deferred balance constraints, and retry keys for financial posting. A reversal retains the original record. A new group always starts at zero.
-
-## Before a complete MVP or deployment
-
-See [the implementation handoff](docs/IMPLEMENTATION_STATUS.md) for verified scope, limitations, and prioritized next steps. No AWS resources have been provisioned.
+The journal is append-only, records the actor and original input, and uses database transactions, group-scoped foreign keys, balance checks, and retry keys for financial posting. A reversal retains the original record. A new group always starts at zero.
