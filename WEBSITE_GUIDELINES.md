@@ -19,7 +19,7 @@ Use generic concepts: groups, members, projects, categories, transactions, alloc
 
 ## 2. What the example source files illustrate
 
-Example sources: [rental_houses.toml](rental_houses.toml) and [rental-property-report-2015-to-2024.txt](rental-property-report-2015-to-2024.txt). Use them to understand possible workflows and data shapes. Do not review every old row, import them by default, or treat their balances as verified.
+The table below summarizes workflows and data shapes derived from historical rental-record files (removed from the repository). Do not review every old row, import them by default, or treat their balances as verified.
 
 | Source feature                                  | Product requirement                                                                           |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------- |

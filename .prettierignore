@@ -3,8 +3,6 @@ node_modules
 dist
 package-lock.json
 backend/drizzle/meta
-rental_houses.toml
-rental-property-report-2015-to-2024.txt
 
 test-results
 playwright-report
