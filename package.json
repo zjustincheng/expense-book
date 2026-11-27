@@ -17,6 +17,7 @@
     "lint": "eslint frontend/src frontend/test backend/src backend/test scripts",
     "lint:fix": "eslint --fix frontend/src frontend/test backend/src backend/test scripts",
     "check:staged": "node scripts/pre-commit-checks.mjs",
+    "check:secrets": "node scripts/pre-commit-checks.mjs --all",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "npm run db:generate -w backend",

@@ -69,6 +69,7 @@ Husky Git hooks are configured automatically on `npm ci` / `npm install`:
 
 - `pre-commit`: runs staged-file safety/hygiene checks (`scripts/pre-commit-checks.mjs`, including blocked secret/env/db files, large-file guard, conflict markers, secret patterns, JSON syntax, `.only` test guard, and targeted TypeScript typechecking) plus `lint-staged` (`eslint` for lint, naming conventions, and code smells, and `prettier --check`).
 - `commit-msg`: validates commit messages against Conventional Commits via `commitlint` (`commitlint.config.mjs`).
+- `pre-push`: runs `npm run check:secrets` (`node scripts/pre-commit-checks.mjs --all`) across all Git-tracked files to verify no sensitive files, keys, tokens, or credentials are present before pushing.
 
 ## Financial conventions
 
