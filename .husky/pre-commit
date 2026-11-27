@@ -1,0 +1,2 @@
+node scripts/pre-commit-checks.mjs
+npx --no -- lint-staged

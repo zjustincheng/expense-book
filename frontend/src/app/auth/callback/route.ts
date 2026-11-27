@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { cognitoConfig, cookieOptions } from "@/lib/auth";
 export async function GET(request: NextRequest) {
   const jar = await cookies();

@@ -63,6 +63,13 @@ npm run build
 npm run test:e2e
 ```
 
+### Git hooks
+
+Husky Git hooks are configured automatically on `npm ci` / `npm install`:
+
+- `pre-commit`: runs staged-file safety/hygiene checks (`scripts/pre-commit-checks.mjs`, including blocked secret/env/db files, large-file guard, conflict markers, secret patterns, JSON syntax, `.only` test guard, and targeted TypeScript typechecking) plus `lint-staged` (`eslint` for lint, naming conventions, and code smells, and `prettier --check`).
+- `commit-msg`: validates commit messages against Conventional Commits via `commitlint` (`commitlint.config.mjs`).
+
 ## Financial conventions
 
 Money is stored as integer minor units and transported as decimal strings. Expressions use bounded rational arithmetic and round half-up once; splits use largest remainder with stable member-ID ordering. Positive outstanding means a member should receive; negative means they should pay. Transfers and settlements each record a cash movement once. Obligations and corrections do not claim cash moved.

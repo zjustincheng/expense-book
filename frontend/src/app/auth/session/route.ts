@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { cookieOptions, isValidOrigin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {

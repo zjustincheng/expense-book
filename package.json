@@ -9,11 +9,14 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "prepare": "[ -d .git ] && husky || true",
     "dev": "concurrently -k -n api,web 'npm run dev -w backend' 'npm run dev -w frontend'",
     "build": "npm run build --workspaces",
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test -w backend",
-    "lint": "eslint frontend/src backend/src backend/test",
+    "lint": "eslint frontend/src frontend/test backend/src backend/test scripts",
+    "lint:fix": "eslint --fix frontend/src frontend/test backend/src backend/test scripts",
+    "check:staged": "node scripts/pre-commit-checks.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "npm run db:generate -w backend",
@@ -21,6 +24,8 @@
     "test:e2e": "playwright test --config frontend/playwright.config.ts"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
     "@electric-sql/pglite": "^0.5.8",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
@@ -31,7 +36,11 @@
     "concurrently": "^10.0.5",
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.10.0",
+    "eslint-plugin-check-file": "^3.3.2",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-sonarjs": "^4.2.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.2",
     "prettier": "^3.9.6",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",
