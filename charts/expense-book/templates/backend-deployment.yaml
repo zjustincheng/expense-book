@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: expense-book-backend
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: expense-book-backend
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: expense-book-backend
+  template:
+    metadata:
+      labels:
+        app: expense-book-backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.port }}
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: HOST
+              value: 0.0.0.0
+            - name: PORT
+              value: {{ .Values.backend.port | quote }}
+            - name: DB_DRIVER
+              value: {{ .Values.db.driver | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: expense-book-config
+                  key: DATABASE_URL
+            - name: ATTACHMENT_DIR
+              value: {{ .Values.backend.persistence.mountPath | quote }}
+            - name: AUTH_MODE
+              value: {{ .Values.app.authMode | quote }}
+            - name: APP_URL
+              value: {{ .Values.app.url | quote }}
+          {{- if .Values.backend.persistence.enabled }}
+          volumeMounts:
+            - name: attachments
+              mountPath: {{ .Values.backend.persistence.mountPath }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+      {{- if .Values.backend.persistence.enabled }}
+      volumes:
+        - name: attachments
+          persistentVolumeClaim:
+            claimName: expense-book-attachments
+      {{- end }}

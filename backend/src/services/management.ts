@@ -1,7 +1,7 @@
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Identity } from "../auth.js";
-import type { Database } from "../db/client.js";
+import { withRowLock, type Database } from "../db/client.js";
 import {
   access,
   groups,
@@ -380,10 +380,9 @@ export async function reviewInvitation(
         404,
       );
     // Acceptors do not have access yet. Lock the group before the invitation to match admin writers.
-    const [group] = await tx
-      .select()
-      .from(groups)
-      .where(eq(groups.id, lookup.groupId));
+    const [group] = await withRowLock(
+      tx.select().from(groups).where(eq(groups.id, lookup.groupId)),
+    );
     const [invitation] = await tx
       .select()
       .from(invitations)

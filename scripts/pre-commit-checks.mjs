@@ -68,7 +68,7 @@ const HIGH_CONFIDENCE_SECRET_PATTERNS = [
   {
     name: "URL with embedded credentials",
     pattern:
-      /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp|https?):\/\/[^/\s:@]+:[^/\s@]+@[^/\s]+/i,
+      /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp|https?):\/\/[^/\s:@]+:[^/\s@<$]+@[^/\s]+/i,
   },
 ];
 
@@ -106,10 +106,10 @@ function isBlockedFilename(file) {
     return "Key, certificate, or keystore files must not be committed.";
   }
   if (
-    /credentials.*\.json$/i.test(baseName) &&
-    !baseName.endsWith(".example")
+    baseName === "secrets.yaml" ||
+    (/credentials.*\.json$/i.test(baseName) && !baseName.endsWith(".example"))
   ) {
-    return "Credential JSON files must not be committed.";
+    return "Plaintext secrets or credential files must not be committed.";
   }
   if (/\.tfstate(?:\.|$)/i.test(baseName)) {
     return "Terraform state files must not be committed.";
@@ -130,8 +130,12 @@ function isTestFile(file) {
   );
 }
 
+function isExampleFile(file) {
+  return /(?:^|\/|\.)example(?:\.[^/]+)?$/i.test(file);
+}
+
 function scanSecrets(file, text, failures) {
-  if (file.endsWith(".example")) return;
+  if (isExampleFile(file)) return;
 
   for (const { name, pattern } of HIGH_CONFIDENCE_SECRET_PATTERNS) {
     if (pattern.test(text)) {

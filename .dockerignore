@@ -14,3 +14,7 @@ data
 *.sqlite-shm
 *.sqlite-wal
 .env
+secrets.yaml
+secrets.enc.yaml
+charts
+backups

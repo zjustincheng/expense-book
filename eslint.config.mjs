@@ -141,7 +141,10 @@ export default tseslint.config(
     },
   },
   {
-    files: ["backend/src/cleanup-attachments.ts"],
+    files: [
+      "backend/src/cleanup-attachments.ts",
+      "backend/src/db/migrate-sqlite-to-pg.ts",
+    ],
     rules: {
       "no-console": "off",
     },

@@ -1,13 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
-import {
-  applyMigrations,
-  connectDatabase,
-  type Database,
-} from "../src/db/client.js";
+import type { Database } from "../src/db/client.js";
 import { createAuthenticator } from "../src/auth.js";
 import * as schema from "../src/db/schema.js";
+import { testDatabase } from "./test-database.js";
 
 let app: Awaited<ReturnType<typeof createApp>>;
 let db: Database;
@@ -27,12 +24,9 @@ const incomeInput = () => ({
 });
 
 beforeAll(async () => {
-  const connection = connectDatabase(
-    process.env.TEST_DATABASE_URL ?? ":memory:",
-  );
+  const connection = await testDatabase();
   db = connection.db;
-  closeDatabase = () => connection.pool.end();
-  await applyMigrations(connection.pool);
+  closeDatabase = connection.close;
   app = await createApp(
     db,
     async (request) => {

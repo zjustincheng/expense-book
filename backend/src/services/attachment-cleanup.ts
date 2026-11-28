@@ -1,5 +1,5 @@
 import { and, eq, lt } from "drizzle-orm";
-import type { Database } from "../db/client.js";
+import { withRowLock, type Database } from "../db/client.js";
 import { attachments } from "../db/schema.js";
 import { deleteObject, type AttachmentStorage } from "./attachments.js";
 
@@ -24,16 +24,18 @@ export async function cleanupPendingAttachments(
   for (const candidate of candidates) {
     try {
       removed += await db.transaction(async (tx) => {
-        const [row] = await tx
-          .select()
-          .from(attachments)
-          .where(
-            and(
-              eq(attachments.id, candidate.id),
-              eq(attachments.uploadState, "pending"),
-              lt(attachments.createdAt, cutoff),
+        const [row] = await withRowLock(
+          tx
+            .select()
+            .from(attachments)
+            .where(
+              and(
+                eq(attachments.id, candidate.id),
+                eq(attachments.uploadState, "pending"),
+                lt(attachments.createdAt, cutoff),
+              ),
             ),
-          );
+        );
         if (!row) return 0;
         // An ambiguous storage failure rolls back and retains the reference for retry.
         await deleteObject(storage, row.objectKey);

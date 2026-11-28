@@ -7,3 +7,5 @@ backend/drizzle/meta
 test-results
 playwright-report
 .terraform
+charts
+secrets.enc.yaml

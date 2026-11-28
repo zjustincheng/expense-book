@@ -1,0 +1,24 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: expense-book
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: expense-book
+  annotations:
+    external-dns.kubernetes.io/target: "{{ .Values.ingress.cloudflareTunnelId }}.cfargotunnel.com"
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: expense-book-frontend
+                port:
+                  number: {{ .Values.frontend.port }}
+{{- end }}

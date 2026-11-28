@@ -1,0 +1,53 @@
+backend:
+  image:
+    repository: localhost:5000/expense-book-backend
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+  port: 4000
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 5Gi
+    mountPath: /data/attachments
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  image:
+    repository: localhost:5000/expense-book-frontend
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+  port: 3000
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+app:
+  url: https://expbook.culater.cc
+  authMode: local
+
+db:
+  driver: postgres
+  host: postgres.database.svc.cluster.local
+  port: "5432"
+  name: expense_book
+  user: expense_book
+  password: ""
+  sslmode: disable
+
+ingress:
+  enabled: true
+  className: traefik
+  host: expbook.culater.cc
+  cloudflareTunnelId: 4c05ccd5-59ed-4bb7-9460-599af41922f2

@@ -1,7 +1,7 @@
 import { and, asc, eq, lte, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import type { Database } from "../db/client.js";
+import { withRowLock, type Database } from "../db/client.js";
 import {
   drafts,
   importBatches,
@@ -98,11 +98,11 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         // the existing anchor, so renaming a schedule cannot quietly reset a
         // month-end anchor that is currently clamped to a shorter month.
         anchorDay: input.nextRun
-          ? sql`case when ${input.frequency ?? sql`${recurringTransactions.frequency}`} = 'weekly' then null when ${recurringTransactions.nextRun} = ${input.nextRun} then coalesce(${recurringTransactions.anchorDay}, ${Number(input.nextRun.slice(8, 10))}) else ${Number(input.nextRun.slice(8, 10))} end`
+          ? sql`case when ${input.frequency ?? sql`${recurringTransactions.frequency}`} = 'weekly' then null when cast(${recurringTransactions.nextRun} as text) = ${input.nextRun} then coalesce(${recurringTransactions.anchorDay}, cast(${Number(input.nextRun.slice(8, 10))} as integer)) else cast(${Number(input.nextRun.slice(8, 10))} as integer) end`
           : input.frequency === "weekly"
             ? null
             : input.frequency
-              ? sql`coalesce(${recurringTransactions.anchorDay}, cast(substr(${recurringTransactions.nextRun}, 9, 2) as integer))`
+              ? sql`coalesce(${recurringTransactions.anchorDay}, cast(substr(cast(${recurringTransactions.nextRun} as text), 9, 2) as integer))`
               : undefined,
         updatedAt: new Date(),
       })
@@ -174,15 +174,17 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
         .parse(request.body ?? {});
       const result = await db.transaction(async (tx) => {
         await lockGroup(tx, groupId, request.subject);
-        const [row] = await tx
-          .select()
-          .from(recurringTransactions)
-          .where(
-            and(
-              eq(recurringTransactions.groupId, groupId),
-              eq(recurringTransactions.id, recurringId),
+        const [row] = await withRowLock(
+          tx
+            .select()
+            .from(recurringTransactions)
+            .where(
+              and(
+                eq(recurringTransactions.groupId, groupId),
+                eq(recurringTransactions.id, recurringId),
+              ),
             ),
-          );
+        );
         if (!row || !row.active)
           fail("Active recurring transaction not found.", 404);
         if (expectedNextRun && expectedNextRun !== row.nextRun)
@@ -262,15 +264,17 @@ export function registerRecurringRoutes(app: FastifyInstance, db: Database) {
       for (const candidate of due) {
         const result = await db.transaction(async (tx) => {
           await lockGroup(tx, groupId, request.subject);
-          const [row] = await tx
-            .select()
-            .from(recurringTransactions)
-            .where(
-              and(
-                eq(recurringTransactions.groupId, groupId),
-                eq(recurringTransactions.id, candidate.id),
+          const [row] = await withRowLock(
+            tx
+              .select()
+              .from(recurringTransactions)
+              .where(
+                and(
+                  eq(recurringTransactions.groupId, groupId),
+                  eq(recurringTransactions.id, candidate.id),
+                ),
               ),
-            );
+          );
           if (
             !row ||
             !row.active ||

@@ -1,9 +1,10 @@
 import { applyMigrations, connectDatabase } from "./client.js";
+import { resolveDatabaseConfig } from "./config.js";
 
-const databaseUrl = process.env.DATABASE_URL ?? "./data/expense-book.sqlite";
-const { pool } = connectDatabase(databaseUrl);
+const { driver, url } = resolveDatabaseConfig(process.env);
+const { pool } = connectDatabase(url, driver);
 try {
-  await applyMigrations(pool);
+  await applyMigrations(pool, driver);
 } finally {
   await pool.end();
 }

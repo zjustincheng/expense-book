@@ -4,9 +4,16 @@ import { readdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { is, SQL, type SQLWrapper } from "drizzle-orm";
+import { drizzle as pgDrizzle } from "drizzle-orm/node-postgres";
 import { SQLiteAsyncDialect } from "drizzle-orm/sqlite-core";
-import { drizzle, type SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
-import * as schema from "./schema.js";
+import {
+  drizzle as sqliteDrizzle,
+  type SqliteRemoteDatabase,
+} from "drizzle-orm/sqlite-proxy";
+import pg from "pg";
+import { resolveDriverFromUrl, type DatabaseDriver } from "./config.js";
+import * as pgSchema from "./schema-pg.js";
+import * as sqliteSchema from "./schema-sqlite.js";
 
 export function resolveSqlitePath(url: string): string {
   const trimmed = url.trim();
@@ -91,20 +98,35 @@ function validateDeferredLedgerInvariants(raw: DatabaseSync) {
   }
 }
 
-export type Database = SqliteRemoteDatabase<typeof schema> & {
+export type Database = SqliteRemoteDatabase<typeof sqliteSchema> & {
   execute: (query: SQLWrapper | string) => Promise<unknown>;
 };
 
 export type DatabasePool = {
-  query: (sqlText: string) => Promise<{ rows: unknown[] }>;
+  query: (
+    sqlText: string,
+    params?: unknown[],
+  ) => Promise<{ rows: Record<string, unknown>[] }>;
   end: () => Promise<void>;
 };
 
-export function connectDatabase(url: string): {
+export type DatabaseConnection = {
   db: Database;
   pool: DatabasePool;
-  raw: DatabaseSync;
-} {
+  driver: DatabaseDriver;
+  raw?: DatabaseSync;
+};
+
+/** Applies row locking on PostgreSQL while acting as a no-op on serialized SQLite. */
+export function withRowLock<T>(
+  query: T,
+  mode: "update" | "share" = "update",
+): T {
+  const lockable = query as { for?: (lockMode: "update" | "share") => T };
+  return typeof lockable.for === "function" ? lockable.for(mode) : query;
+}
+
+function connectSqliteDatabase(url: string): DatabaseConnection {
   const path = resolveSqlitePath(url);
   const raw = new DatabaseSync(path);
   if (path !== ":memory:") {
@@ -161,7 +183,7 @@ export function connectDatabase(url: string): {
     return { rows: (method === "get" ? rows[0] : rows) as unknown[] };
   }
 
-  const baseDb = drizzle(
+  const baseDb = sqliteDrizzle(
     async (sqlStr, params, method) => {
       await waitIfLocked();
       return executeRawStatement(sqlStr, params, method);
@@ -170,7 +192,7 @@ export function connectDatabase(url: string): {
       await waitIfLocked();
       return queries.map((q) => executeRawStatement(q.sql, q.params, q.method));
     },
-    { schema },
+    { schema: sqliteSchema },
   );
 
   const originalTransaction = baseDb.transaction.bind(baseDb);
@@ -192,7 +214,6 @@ export function connectDatabase(url: string): {
       }
       return baseDb.run(query);
     },
-    // Accept optional postgres-style isolation/readOnly options for compatibility.
     transaction: (async (
       transactionFn: Parameters<typeof originalTransaction>[0],
     ) => {
@@ -234,8 +255,20 @@ export function connectDatabase(url: string): {
   });
 
   const pool: DatabasePool = {
-    async query(sqlText: string) {
+    async query(sqlText: string, params?: unknown[]) {
       await waitIfLocked();
+      if (closed) throw new Error("Database connection is closed.");
+      if (params && params.length > 0) {
+        const bindParams = params.map((p) =>
+          p === undefined ? null : (p as SQLInputValue),
+        );
+        raw.prepare(sqlText).run(...bindParams);
+        return { rows: [] };
+      }
+      if (/^\s*select\b/i.test(sqlText)) {
+        const rows = raw.prepare(sqlText).all() as Record<string, unknown>[];
+        return { rows };
+      }
       raw.exec(sqlText);
       return { rows: [] };
     },
@@ -247,25 +280,103 @@ export function connectDatabase(url: string): {
     },
   };
 
-  return { db, pool, raw };
+  return { db, pool, driver: "sqlite", raw };
+}
+
+function connectPostgresDatabase(url: string): DatabaseConnection {
+  const pgPool = new pg.Pool({
+    connectionString: url,
+    max: 10,
+    connectionTimeoutMillis: 5000,
+  });
+  const db = pgDrizzle(pgPool, { schema: pgSchema }) as unknown as Database;
+  const pool: DatabasePool = {
+    async query(sqlText: string, params?: unknown[]) {
+      const result = params
+        ? await pgPool.query(sqlText, params)
+        : await pgPool.query(sqlText);
+      return { rows: (result.rows ?? []) as Record<string, unknown>[] };
+    },
+    end: () => pgPool.end(),
+  };
+  return { db, pool, driver: "postgres" };
+}
+
+export function connectDatabase(
+  url: string,
+  driverOverride?: DatabaseDriver,
+): DatabaseConnection {
+  const driver = driverOverride ?? resolveDriverFromUrl(url);
+  if (driver === "postgres") {
+    return connectPostgresDatabase(url);
+  }
+  if (driver === "pglite") {
+    throw new Error("Use connectPgliteDatabase() for the pglite driver.");
+  }
+  return connectSqliteDatabase(url);
+}
+
+export async function connectPgliteDatabase(
+  url = "memory://",
+): Promise<DatabaseConnection> {
+  const { PGlite } = await import("@electric-sql/pglite");
+  const { drizzle: pgliteDrizzle } = await import("drizzle-orm/pglite");
+  const client = new PGlite(url);
+  const db = pgliteDrizzle(client, {
+    schema: pgSchema,
+  }) as unknown as Database;
+  const pool: DatabasePool = {
+    async query(sqlText: string, params?: unknown[]) {
+      if (params && params.length > 0) {
+        const result = await client.query(sqlText, params);
+        return { rows: (result.rows ?? []) as Record<string, unknown>[] };
+      }
+      if (/^\s*select\b/i.test(sqlText)) {
+        const result = await client.query(sqlText);
+        return { rows: (result.rows ?? []) as Record<string, unknown>[] };
+      }
+      await client.exec(sqlText);
+      return { rows: [] };
+    },
+    end: () => client.close(),
+  };
+  return { db, pool, driver: "pglite" };
 }
 
 export async function applyMigrations(
   pool: DatabasePool,
-  migrationsFolder = new URL("../../drizzle/", import.meta.url),
+  driver: DatabaseDriver = "sqlite",
+  migrationsFolder?: URL,
 ) {
+  const folder =
+    migrationsFolder ??
+    new URL(
+      driver === "sqlite" ? "../../drizzle/" : "../../drizzle-pg/",
+      import.meta.url,
+    );
+  const idColumn =
+    driver === "sqlite"
+      ? '"id" INTEGER PRIMARY KEY AUTOINCREMENT'
+      : '"id" SERIAL PRIMARY KEY';
   await pool.query(`
     CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
-      "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+      ${idColumn},
       "name" TEXT NOT NULL UNIQUE,
-      "applied_at" INTEGER NOT NULL
+      "applied_at" BIGINT NOT NULL
     );
   `);
-  const files = (await readdir(migrationsFolder))
+  const existing = await pool.query(
+    'SELECT "name" FROM "__drizzle_migrations"',
+  );
+  const applied = new Set(
+    existing.rows.map((row) => String(row.name ?? "")).filter(Boolean),
+  );
+  const files = (await readdir(folder))
     .filter((name) => name.endsWith(".sql"))
     .sort();
   for (const file of files) {
-    const content = await readFile(new URL(file, migrationsFolder), "utf8");
+    if (applied.has(file)) continue;
+    const content = await readFile(new URL(file, folder), "utf8");
     const statements = content
       .split("--> statement-breakpoint")
       .map((s) => s.trim())
@@ -274,12 +385,16 @@ export async function applyMigrations(
       try {
         await pool.query(statement);
       } catch (error) {
-        // Allow idempotent re-runs if table/index already exists
         if (error instanceof Error && /already exists/i.test(error.message)) {
           continue;
         }
         throw error;
       }
     }
+    const insertSql =
+      driver === "sqlite"
+        ? 'INSERT INTO "__drizzle_migrations" ("name", "applied_at") VALUES (?, ?)'
+        : 'INSERT INTO "__drizzle_migrations" ("name", "applied_at") VALUES ($1, $2)';
+    await pool.query(insertSql, [file, Date.now()]);
   }
 }

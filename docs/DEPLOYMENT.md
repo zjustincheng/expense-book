@@ -1,6 +1,35 @@
-# Self-Hosted Deployment (`expbook.culater.cc`)
+# Deployment (`expbook.culater.cc`)
 
-Expense Book is configured for self-hosting on a local Linux machine using Docker Compose, a local SQLite database, local filesystem attachment storage, and a Cloudflare Tunnel exposing `https://expbook.culater.cc`.
+Expense Book supports running on **PostgreSQL** (`DB_DRIVER=postgres` or `postgresql://...`) or **SQLite3** (`DB_DRIVER=sqlite` / file path), and is deployed to the local K3s Kubernetes cluster using **Helm/Helmfile**, **SOPS + age**, the in-cluster **`local-registry`**, **Traefik**, **`external-dns`**, and the shared **`k3s-local` Cloudflare Tunnel**.
+
+## Kubernetes Architecture
+
+1. **`expense-book-backend` Deployment** (`backend/Dockerfile`):
+   - Runs Fastify on port `4000` (`ClusterIP` service `expense-book-backend:4000`).
+   - Connects to the shared PostgreSQL instance in namespace `database` (`postgres.database.svc.cluster.local:5432`, database `expense_book`) using `DB_DRIVER=postgres` and `DATABASE_URL` from SOPS-encrypted `Secret/expense-book-config`.
+   - Stores attachments in `/data/attachments` backed by `PersistentVolumeClaim/expense-book-attachments` (`local-path`, `5Gi`, `Recreate` deployment strategy).
+   - Runs PostgreSQL migrations automatically on container startup (`node backend/dist/db/migrate.js`).
+
+2. **`expense-book-frontend` Deployment** (`frontend/Dockerfile`):
+   - Runs Next.js standalone server on port `3000` (`ClusterIP` service `expense-book-frontend:3000`).
+   - Proxies `/api/*` and `/auth/*` requests to `http://expense-book-backend:4000`.
+
+3. **Ingress & Cloudflare Tunnel (`expbook.culater.cc`)**:
+   - `Ingress/expense-book` (`ingressClassName: traefik`) routes `expbook.culater.cc` `/` to `expense-book-frontend:3000`.
+   - `external-dns.kubernetes.io/target` points `expbook.culater.cc` to the cluster's `k3s-local` Cloudflare Tunnel (`4c05ccd5-59ed-4bb7-9460-599af41922f2.cfargotunnel.com`).
+
+## Kubernetes Deployment Commands
+
+```sh
+./scripts/push-images.sh   # Build and push backend/frontend images to local-registry
+helm lint ./charts/expense-book
+helmfile sync              # Deploy or upgrade namespace expense-book
+just k8s-check             # Verify LAN Traefik + public HTTPS health
+```
+
+---
+
+## Legacy Docker Compose + SQLite Setup
 
 ## Architecture
 

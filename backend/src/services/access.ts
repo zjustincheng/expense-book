@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import type { Database } from "../db/client.js";
+import { withRowLock, type Database } from "../db/client.js";
 import { access, groups } from "../db/schema.js";
 import { fail } from "../lib/errors.js";
 export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -28,12 +28,18 @@ export async function lockGroup(
 ) {
   // Check before taking a lock so guessed group IDs cannot block another tenant's writes.
   await authorize(tx, groupId, subject, true);
-  const [group] = await tx.select().from(groups).where(eq(groups.id, groupId));
+  const [group] = await withRowLock(
+    tx.select().from(groups).where(eq(groups.id, groupId)),
+    "update",
+  );
   if (!group) fail("Group not found.", 404);
-  const [grant] = await tx
-    .select()
-    .from(access)
-    .where(and(eq(access.groupId, groupId), eq(access.subject, subject)));
+  const [grant] = await withRowLock(
+    tx
+      .select()
+      .from(access)
+      .where(and(eq(access.groupId, groupId), eq(access.subject, subject))),
+    "share",
+  );
   if (!grant) fail("Group not found.", 404);
   if (grant.role === "viewer")
     fail("You have read-only access to this group.", 403);

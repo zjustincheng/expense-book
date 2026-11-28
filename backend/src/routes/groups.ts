@@ -301,7 +301,7 @@ export function registerGroupRoutes(app: FastifyInstance, db: Database) {
     if (!member) fail("Member not found.", 404);
     const [balance] = await db
       .select({
-        outstanding: sql<string>`coalesce(sum(${effects.allocatedIncome} - ${effects.allocatedExpense} - ${effects.activityCash} - ${effects.transferCash} - ${effects.settlementCash} + ${effects.obligation} + ${effects.correction}), 0)`,
+        outstanding: sql<string>`cast(coalesce(sum(${effects.allocatedIncome} - ${effects.allocatedExpense} - ${effects.activityCash} - ${effects.transferCash} - ${effects.settlementCash} + ${effects.obligation} + ${effects.correction}), 0) as text)`,
       })
       .from(effects)
       .where(and(eq(effects.groupId, groupId), eq(effects.memberId, memberId)));

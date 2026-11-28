@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import type { Database } from "../db/client.js";
+import { withRowLock, type Database } from "../db/client.js";
 import { attachments, entries } from "../db/schema.js";
 import { fail } from "../lib/errors.js";
 import { authorize } from "../services/access.js";
@@ -204,15 +204,17 @@ export function registerAttachmentRoutes(
       await authorize(db, groupId, request.subject, true);
       if (!storage) fail("Attachment storage is not configured.", 503);
       return db.transaction(async (tx) => {
-        const [attachment] = await tx
-          .select()
-          .from(attachments)
-          .where(
-            and(
-              eq(attachments.groupId, groupId),
-              eq(attachments.id, attachmentId),
+        const [attachment] = await withRowLock(
+          tx
+            .select()
+            .from(attachments)
+            .where(
+              and(
+                eq(attachments.groupId, groupId),
+                eq(attachments.id, attachmentId),
+              ),
             ),
-          );
+        );
         if (!attachment) fail("Attachment not found.", 404);
         if (attachment.uploadState === "ready") return { ready: true };
         let object;

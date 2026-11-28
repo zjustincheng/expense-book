@@ -1,0 +1,15 @@
+helmDefaults:
+  atomic: true
+  wait: true
+  timeout: 300
+  createNamespace: true
+
+releases:
+  - name: expense-book
+    namespace: expense-book
+    createNamespace: true
+    chart: ./charts/expense-book
+    values:
+      - ./charts/expense-book/values.yaml
+    secrets:
+      - ./secrets.enc.yaml

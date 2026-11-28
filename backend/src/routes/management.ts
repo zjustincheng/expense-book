@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Database } from "../db/client.js";
+import { isUniqueConstraintError } from "../db/errors.js";
 import {
   access,
   groups,
@@ -235,7 +236,7 @@ export function registerManagementRoutes(
               .returning();
       return reply.code(201).send(created);
     } catch (error) {
-      if (error instanceof Error && error.message.includes("group_name"))
+      if (isUniqueConstraintError(error, "group_name"))
         fail("A label with this name already exists.", 409);
       throw error;
     }

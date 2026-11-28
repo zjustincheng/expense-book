@@ -14,6 +14,7 @@
     "build": "npm run build --workspaces",
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test -w backend",
+    "test:pg": "DB_DRIVER=pglite npm run test -w backend",
     "lint": "eslint frontend/src frontend/test backend/src backend/test scripts",
     "lint:fix": "eslint --fix frontend/src frontend/test backend/src backend/test scripts",
     "check:staged": "node scripts/pre-commit-checks.mjs",

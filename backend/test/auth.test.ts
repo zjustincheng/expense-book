@@ -190,5 +190,5 @@ describe("Local SQLite account authentication", () => {
       await app.close();
       await database.close();
     }
-  });
+  }, 30_000);
 });

@@ -1,6 +1,6 @@
 # Expense Book
 
-A shared-money application built with Next.js, React, TypeScript, Tailwind, shadcn/ui components, a Fastify API, and a local SQLite database with Drizzle ORM—packaged for self-hosting on a local Linux machine with Docker Compose and Cloudflare Tunnel (`expbook.culater.cc`).
+A shared-money application built with Next.js, React, TypeScript, Tailwind, shadcn/ui components, a Fastify API, and a configurable Drizzle ORM database backend (PostgreSQL or SQLite3)—deployed to the local K3s Kubernetes cluster (`expbook.culater.cc`) via Helm/Helmfile and Cloudflare Tunnel.
 
 ## Current milestone
 
@@ -15,27 +15,47 @@ Records can be labeled with an optional project/trip and category/tag. Labels ap
 ## Structure
 
 - `frontend/`: Next.js website, UI components, local sign-in/registration UI, and API proxy.
-- `backend/`: Fastify API, domain calculations, authorization, SQLite/Drizzle schema & migrations, local account auth, local attachment storage, and tests.
-- `compose.yaml` & `infrastructure/`: Docker Compose stack (`backend`, `frontend`, `cloudflared`) and Cloudflare Tunnel configuration (`infrastructure/cloudflared/config.yml`).
+- `backend/`: Fastify API, domain calculations, authorization, configurable PostgreSQL/SQLite Drizzle schemas & migrations (`DB_DRIVER=postgres|sqlite`), local account auth, attachment storage, and tests.
+- `charts/expense-book/`, `helmfile.yaml`, `justfile`, `scripts/`: Kubernetes Helm chart, Helmfile deployment, SOPS secrets, and `local-registry` image push scripts.
+- `compose.yaml` & `infrastructure/`: Legacy Docker Compose stack and Terraform references.
 
-## Self-hosting with Docker Compose & Cloudflare Tunnel (`expbook.culater.cc`)
+## Deploying to Kubernetes (`expbook.culater.cc`)
 
-1. Copy `.env.example` to `.env` and set your Cloudflare Tunnel token:
+1. Ensure `kubectl`, `helm`, `helmfile`, `sops`, `age`, and `just` are installed and `~/.config/sops/age/keys.txt` is present.
+2. Build and push container images to the cluster's `local-registry` (`localhost:5000`):
+   ```sh
+   ./scripts/push-images.sh
+   # or: just k8s-push
+   ```
+3. Deploy with Helmfile (`namespace: expense-book`, shared cluster `postgres.database.svc.cluster.local:5432`, Traefik Ingress + `external-dns` via `k3s-local` Cloudflare Tunnel):
+   ```sh
+   helmfile sync
+   # or: just k8s-deploy
+   ```
+
+To migrate an existing SQLite database into PostgreSQL:
+
+```sh
+SOURCE_SQLITE_PATH="$(pwd)/data/expense-book.sqlite" \
+TARGET_DATABASE_URL="postgresql://expense_book:<password>@127.0.0.1:15432/expense_book" \
+npm run db:migrate:sqlite-to-pg -w backend
+```
+
+## Local testing with Docker Compose
+
+1. Copy `.env.example` to `.env`:
    ```sh
    cp .env.example .env
    ```
-2. In the Cloudflare Zero Trust dashboard (**Networks → Tunnels**):
-   - Create or select your tunnel and copy its token into `CLOUDFLARE_TUNNEL_TOKEN` in `.env`.
-   - Add a **Public Hostname** route:
-     - **Domain**: `expbook.culater.cc`
-     - **Service**: `http://frontend:3000`
-3. Start the stack:
+2. Start the stack (SQLite by default, bound on `http://127.0.0.1:3000`):
    ```sh
    docker compose up -d --build
    ```
-   - SQLite database is persisted on the host at `./data/expense-book.sqlite` (WAL mode enabled).
-   - Attachments are persisted on the host at `./data/attachments`.
-   - The frontend is also bound locally on `http://127.0.0.1:3000` and exposed publicly at `https://expbook.culater.cc` via the `cloudflared` container.
+   - SQLite database is persisted on the host at `./data/expense-book.sqlite` (WAL mode enabled), and attachments at `./data/attachments`.
+   - To test locally against PostgreSQL instead, uncomment the `DB_DRIVER=postgres` / `DATABASE_URL` lines in `.env` and run:
+     ```sh
+     docker compose --profile postgres up -d --build
+     ```
 
 ## Run locally for development
 

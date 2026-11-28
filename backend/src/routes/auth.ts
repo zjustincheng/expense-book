@@ -8,6 +8,7 @@ import {
   verifyPassword,
 } from "../auth.js";
 import type { Database } from "../db/client.js";
+import { isUniqueConstraintError } from "../db/errors.js";
 import { users, userSessions } from "../db/schema.js";
 import { fail } from "../lib/errors.js";
 
@@ -54,7 +55,7 @@ export function registerAuthRoutes(app: FastifyInstance, db: Database) {
         })
         .returning();
     } catch (error) {
-      if (error instanceof Error && /unique/i.test(error.message)) {
+      if (isUniqueConstraintError(error)) {
         fail(
           "An account with this email already exists. Sign in instead.",
           409,

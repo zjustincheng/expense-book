@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: expense-book-backend
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: expense-book-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: expense-book-backend
+  ports:
+    - name: http
+      port: {{ .Values.backend.port }}
+      targetPort: http
+      protocol: TCP
